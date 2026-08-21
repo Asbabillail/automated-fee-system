@@ -71,8 +71,8 @@ st.markdown("""
         margin-bottom: 20px;
     }
     
-    /* Screenshot-Matched iPad Hero Box */
-    .ipad-screenshot-card {
+    /* Styled iPad Hero Box */
+    .ipad-hero-card {
         background-color: #111827;
         border: 2px solid #1D4ED8;
         border-radius: 12px;
@@ -80,96 +80,67 @@ st.markdown("""
         margin-top: 25px;
         margin-bottom: 25px;
         color: #F3F4F6;
-        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
     }
-    .ipad-screenshot-title {
+    .ipad-hero-title {
         color: #38BDF8;
-        font-size: 1.45rem;
+        font-size: 1.4rem;
         font-weight: 700;
-        margin: 0 0 6px 0;
-        display: flex;
-        align-items: center;
-        gap: 8px;
-    }
-    .ipad-screenshot-sub {
-        color: #9CA3AF;
-        font-size: 1.05rem;
-        margin-bottom: 20px;
-    }
-    .ipad-spec-grid {
-        display: grid;
-        grid-template-columns: 1fr 1fr;
-        gap: 24px;
-        margin-bottom: 20px;
-    }
-    .ipad-section-heading {
-        color: #FFFFFF;
-        font-weight: 700;
-        font-size: 1.05rem;
-        margin-bottom: 12px;
-    }
-    .ipad-spec-list {
-        list-style-type: disc;
-        padding-left: 20px;
-        margin: 0;
-        color: #D1D5DB;
-        line-height: 1.7;
-    }
-    .ipad-spec-list li {
         margin-bottom: 6px;
     }
-    .payment-terms-box {
-        background-color: #1F2937;
-        border: 1px solid #374151;
-        border-left: 4px solid #F59E0B;
-        border-radius: 8px;
-        padding: 16px;
-        margin-bottom: 14px;
+    .ipad-hero-sub {
+        color: #9CA3AF;
+        font-size: 1rem;
+        margin-bottom: 20px;
     }
-    .payment-terms-title {
+    .ipad-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 20px;
+        margin-bottom: 20px;
+    }
+    .ipad-section-title {
+        color: #FFFFFF;
+        font-weight: 700;
+        font-size: 1rem;
+        margin-bottom: 10px;
+    }
+    .ipad-bullet-list {
+        padding-left: 18px;
+        margin: 0;
+        color: #D1D5DB;
+        line-height: 1.6;
+    }
+    .payment-box {
+        background-color: #1F2937;
+        border-left: 4px solid #F59E0B;
+        border-radius: 6px;
+        padding: 14px;
+        margin-bottom: 12px;
+    }
+    .renewal-box {
+        background-color: #1F2937;
+        border-left: 4px solid #EF4444;
+        border-radius: 6px;
+        padding: 14px;
+    }
+    .box-title-amber {
         color: #F59E0B;
         font-weight: 700;
-        margin: 0 0 6px 0;
-        display: flex;
-        align-items: center;
-        gap: 6px;
+        margin-bottom: 4px;
     }
-    .renewal-notice-box {
-        background-color: #1F2937;
-        border: 1px solid #374151;
-        border-left: 4px solid #EF4444;
-        border-radius: 8px;
-        padding: 16px;
-    }
-    .renewal-notice-title {
+    .box-title-red {
         color: #EF4444;
         font-weight: 700;
-        margin: 0 0 6px 0;
-        display: flex;
-        align-items: center;
-        gap: 6px;
+        margin-bottom: 4px;
     }
-    .terms-body {
+    .box-body {
         color: #D1D5DB;
         margin: 0;
-        font-size: 0.95rem;
-        line-height: 1.5;
+        font-size: 0.92rem;
     }
 
     [data-testid="stMetricValue"] {
         color: #38BDF8 !important;
-    }
-    @media print {
-        [data-testid="stSidebar"], .stButton, header, footer {
-            display: none !important;
-        }
-        .main .block-container {
-            padding: 0 !important;
-        }
-        body, .stApp {
-            background-color: white !important;
-            color: black !important;
-        }
     }
     </style>
 """, unsafe_allow_html=True)
@@ -193,7 +164,7 @@ with col_header_right:
     """, unsafe_allow_html=True)
 
 # ---------------------------------------------------------
-# 2. MASTER DATA MAPPINGS (KG1 - GRADE 12)
+# 2. MASTER DATA MAPPINGS
 # ---------------------------------------------------------
 books_fee_map = {
     "KG. 1": 500, "KG. 2": 500, "KG. 3": 500,
@@ -227,20 +198,17 @@ num_students = st.sidebar.number_input("Number of Students", min_value=1, max_va
 nationality = st.sidebar.selectbox("Nationality (Tax Category)", ["Saudi National (0% VAT)", "Non-Saudi (15% VAT)"])
 parent_name = st.sidebar.text_input("Parent / Guardian Name", "Parent/Guardian")
 
+is_non_saudi = "Non-Saudi" in nationality
+vat_rate = 0.15 if is_non_saudi else 0.0
+
 st.sidebar.divider()
 st.sidebar.header("📅 Date & Validity Controls")
-
-# Automatic KSA Issue Date
 issue_date = st.sidebar.date_input("Quotation Issue Date (KSA)", value=current_ksa_date)
-
-# Dynamic Validity Selectors
 discount_validity_days = st.sidebar.slider("Discount Validity (Days)", min_value=1, max_value=60, value=15)
 quote_validity_days = st.sidebar.slider("Quotation Validity (Days)", min_value=1, max_value=90, value=30)
 
 discount_expiry_date = issue_date + timedelta(days=discount_validity_days)
 quote_expiry_date = issue_date + timedelta(days=quote_validity_days)
-
-vat_rate = 0.15 if "Non-Saudi" in nationality else 0.0
 
 family_total_quote = 0.0
 family_first_payment = 0.0
@@ -269,7 +237,6 @@ for i, tab in enumerate(tabs):
             default_discount = 35 + (5 if i > 0 else 0)
             discount_pct = st.slider("Discount (%)", 0, 50, min(default_discount, 50), 5, key=f"disc_{i}")
             
-            # iPad Dropdown Menu
             ipad_option = st.selectbox(
                 "iPad Package / Migration",
                 [
@@ -283,7 +250,6 @@ for i, tab in enumerate(tabs):
             )
             
         with c3:
-            # Bus Transport Options
             bus_options_list = [
                 "None",
                 "One Side (1 Term) - SAR 1,500",
@@ -299,7 +265,6 @@ for i, tab in enumerate(tabs):
                 
             bus_option = st.selectbox("Bus Transportation", bus_options_list, key=f"bus_{i}")
 
-        # Tuition Calculation
         if student_type == "Returning Student":
             base_tuition = old_tuition_map.get(grade, 28500)
         else:
@@ -307,13 +272,13 @@ for i, tab in enumerate(tabs):
 
         discount_amount = base_tuition * (discount_pct / 100.0)
         net_tuition = base_tuition - discount_amount
+        
+        # VAT calculated STRICTLY on net school tuition fee
         vat_amount = net_tuition * vat_rate
         tuition_with_vat = net_tuition + vat_amount
 
-        # Mandatory Book Fee
         books_fee = books_fee_map.get(grade, 1200)
         
-        # Parse iPad Selection
         ipad_fee = 0
         if "2,800" in ipad_option:
             ipad_fee = 2800
@@ -325,7 +290,6 @@ for i, tab in enumerate(tabs):
         elif "800" in ipad_option:
             ipad_fee = 800
 
-        # Parse Bus Selection
         bus_fee = 0
         if "1,500" in bus_option:
             bus_fee = 1500
@@ -377,20 +341,18 @@ for i, tab in enumerate(tabs):
 st.divider()
 st.subheader("📊 Official Family Quotation Breakdown")
 
-# Display Validity Badges
 val_col1, val_col2, val_col3 = st.columns(3)
 val_col1.info(f"📅 **Issue Date (KSA):** {issue_date.strftime('%d %b %Y')}")
 val_col2.warning(f"⏳ **Discount Valid Until:** {discount_expiry_date.strftime('%d %b %Y')} ({discount_validity_days} Days)")
 val_col3.error(f"🛑 **Quotation Expires:** {quote_expiry_date.strftime('%d %b %Y')} ({quote_validity_days} Days)")
 
-# Build Horizontal Format DataFrame
 metrics_labels = [
     "Student Status",
     "Grade Level",
     "Base Tuition (SAR)",
     "Discount Percentage",
     "Discount Amount (SAR)",
-    "VAT Amount (SAR)",
+    "Tuition VAT (15% on Net Fee) (SAR)" if is_non_saudi else "VAT Amount (SAR)",
     "Mandatory Books Fee (SAR)",
     "iPad Package / Migration (SAR)",
     "Bus Transportation (SAR)",
@@ -417,29 +379,49 @@ for s in student_summaries:
 df_horizontal = pd.DataFrame(horizontal_data)
 st.table(df_horizontal)
 
-st.markdown(f"### **Grand Total Family Quote: `{family_total_quote:,.2f} SAR`**")
+# ---------------------------------------------------------
+# DEDICATED STUDENT-BY-STUDENT SUMMARY TABLE & GRAND TOTAL
+# ---------------------------------------------------------
+st.subheader("📋 Student Totals Summary Table")
+
+totals_table_data = []
+for idx, s in enumerate(student_summaries):
+    row = {
+        "Student": f"Student {idx+1}: {s['Student Name']}",
+        "Grade": s["Grade"],
+        "Net School Tuition": f"{s['Base Tuition'] - s['Discount Amt']:,.2f} SAR",
+    }
+    if is_non_saudi:
+        row["VAT (15% on Tuition)"] = f"{s['VAT']:,.2f} SAR"
+    row["Books & Add-Ons"] = f"{s['Mandatory Books'] + s['iPad Fee'] + s['Bus Fee']:,.2f} SAR"
+    row["Total Amount"] = f"{s['Total Fee (SAR)']:,.2f} SAR"
+    totals_table_data.append(row)
+
+st.table(pd.DataFrame(totals_table_data))
+
+st.markdown(f"### **Grand Total Quote: `{family_total_quote:,.2f} SAR`**")
 
 col_p1, col_p2 = st.columns(2)
 col_p1.info(f"**Term 1 Payment Required:** `{family_first_payment:,.2f} SAR`")
 col_p2.success(f"**Term 2 Payment Required:** `{family_second_payment:,.2f} SAR`")
 
 # ---------------------------------------------------------
-# EXACT MATCH FULL IPAD PACKAGE SPECIFICATION CALLOUT CARD
+# ATTRACTIVE IPAD SPECIFICATION CALLOUT CARD
 # ---------------------------------------------------------
 if len(full_ipad_pkg_students) > 0:
     st.markdown(f"""
-    <div class="ipad-screenshot-card">
-        <div class="ipad-screenshot-title">
+    <div class="ipad-hero-card">
+        <div class="ipad-hero-title">
             📱 Full Student iPad Package Details
         </div>
-        <div class="ipad-screenshot-sub">
+        <div class="ipad-hero-sub">
             <b>Selected for Student(s):</b> <span style="color: #38BDF8;">{', '.join(full_ipad_pkg_students)}</span>
         </div>
-        <hr style="border-color: #1F2937; margin-bottom: 20px;">
-        <div class="ipad-spec-grid">
+        <hr style="border-color: #374151; margin-bottom: 20px;">
+        <div class="ipad-grid">
             <div>
-                <div class="ipad-section-heading">📦 Included Hardware & Protection:</div>
-                <ul class="ipad-spec-list">
+                <div class="ipad-section-title">📦 Included Hardware & Protection:</div>
+                <ul class="ipad-bullet-list">
                     <li><b>Brand New iPad A16 (128GB Storage)</b></li>
                     <li><b>Rugged Heavy-Duty Protective Case</b></li>
                     <li><b>School-Approved High-Precision Stylus Pen</b></li>
@@ -447,8 +429,8 @@ if len(full_ipad_pkg_students) > 0:
                 </ul>
             </div>
             <div>
-                <div class="ipad-section-heading">⚙️ Digital Ecosystem & Management:</div>
-                <ul class="ipad-spec-list">
+                <div class="ipad-section-title">⚙️ Digital Ecosystem & Management:</div>
+                <ul class="ipad-bullet-list">
                     <li><b>Jamf School Management System</b> (MDM)</li>
                     <li><b>Microsoft 365 Education Account</b> (1TB Cloud storage)</li>
                     <li><b>Apple Managed Educational ID & 200GB iCloud</b></li>
@@ -457,20 +439,16 @@ if len(full_ipad_pkg_students) > 0:
             </div>
         </div>
         
-        <div class="payment-terms-box">
-            <div class="payment-terms-title">
-                💳 Payment Terms Policy:
-            </div>
-            <p class="terms-body">
+        <div class="payment-box">
+            <div class="box-title-amber">💳 Payment Terms Policy:</div>
+            <p class="box-body">
                 The discounted rate of <b>SAR 2,800</b> is an <b>instant/spot payment offer</b> at the time of registration. If choosing the <b>C-Pay 12-Month Installment Plan</b>, the total price is <b>SAR 3,000</b> (12 monthly payments of SAR 250).
             </p>
         </div>
         
-        <div class="renewal-notice-box">
-            <div class="renewal-notice-title">
-                ⚠️ Annual Software License Renewal Notice:
-            </div>
-            <p class="terms-body">
+        <div class="renewal-box">
+            <div class="box-title-red">⚠️ Annual Software License Renewal Notice:</div>
+            <p class="box-body">
                 The initial package fee covers Year 1 hardware, provisioning, and software setups. All active management licenses (Jamf MDM, Microsoft 365, Cloud platform access) <b>must be renewed annually</b> by parents to keep the device compliant with school systems.
             </p>
         </div>
@@ -480,7 +458,7 @@ if len(full_ipad_pkg_students) > 0:
 st.divider()
 
 # ---------------------------------------------------------
-# 6. PDF GENERATION BUILDER WITH HORIZONTAL FORMATTING
+# 6. PDF GENERATION BUILDER
 # ---------------------------------------------------------
 def create_pdf_bytes():
     try:
@@ -521,7 +499,6 @@ def create_pdf_bytes():
         elements.append(Paragraph(f"<b>Issue Date:</b> {issue_date.strftime('%d %b %Y')} &nbsp;&nbsp;|&nbsp;&nbsp; <b>Discount Valid Until:</b> {discount_expiry_date.strftime('%d %b %Y')} &nbsp;&nbsp;|&nbsp;&nbsp; <b>Quote Expiry:</b> {quote_expiry_date.strftime('%d %b %Y')}", meta_style))
         elements.append(Spacer(1, 10))
 
-        # PDF Horizontal Table Formatting
         pdf_table_headers = ["Fee Component"] + [s["Student Name"] for s in student_summaries]
         pdf_table_data = [pdf_table_headers]
 
@@ -575,7 +552,6 @@ def create_pdf_bytes():
             textColor=colors.HexColor('#0B2545')
         )))
 
-        # iPad Terms Box in PDF
         if len(full_ipad_pkg_students) > 0:
             elements.append(Spacer(1, 6))
             ipad_pdf_text = f"<b>iPad Package Specs & Terms:</b> Included for ({', '.join(full_ipad_pkg_students)}). Package includes iPad A16 128GB, Cover, Stylus, AppleCare+ Enterprise, Jamf MDM, Microsoft 365, and Apple Managed Services. <i>*SAR 2,800 rate valid on spot payment (SAR 3,000 on 12-month installment). Software management licenses require annual renewal.</i>"
