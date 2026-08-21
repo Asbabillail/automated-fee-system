@@ -102,7 +102,7 @@ books_fee_map = {
     "Grade 1": 1200, "Grade 2": 1200, "Grade 3": 1200,
     "Grade 4": 1500, "Grade 5": 1500, "Grade 6": 1500,
     "Grade 7": 1500, "Grade 8": 1500, "Grade 9": 1500,
-    "Grade 10": 1800, "Grade 11": 1800, "Grade 12": 2000
+    "Grade 10": 1800, "Grade 11": 1800, "Grade 12": 1500  # Updated Grade 12 to 1500
 }
 
 new_tuition_map = {
@@ -142,8 +142,6 @@ discount_expiry_date = issue_date + timedelta(days=discount_validity_days)
 quote_expiry_date = issue_date + timedelta(days=quote_validity_days)
 
 family_total_quote = 0.0
-family_first_payment = 0.0
-family_second_payment = 0.0
 student_summaries = []
 full_ipad_pkg_students = []
 
@@ -158,16 +156,23 @@ for i, tab in enumerate(tabs):
         
         student_name_input = st.text_input(f"Student {i+1} Full Name", value=f"Student {i+1}", key=f"name_{i}")
         
-        c1, c2, c3 = st.columns(3)
+        c1, c2, c3, c4 = st.columns(4)
         
         with c1:
             student_type = st.selectbox("Student Status", ["New Student", "Returning Student"], key=f"status_{i}")
             grade = st.selectbox("Select Grade", list(new_tuition_map.keys()), key=f"grade_{i}")
-            
-        with c2:
             default_discount = 35 + (5 if i > 0 else 0)
             discount_pct = st.slider("Discount (%)", 0, 50, min(default_discount, 50), 5, key=f"disc_{i}")
             
+        with c2:
+            default_book_fee = books_fee_map.get(grade, 1500)
+            use_custom_books = st.checkbox("Custom Books Fee", key=f"cust_book_check_{i}")
+            if use_custom_books:
+                books_fee = st.number_input("Books Fee (SAR)", min_value=0.0, value=float(default_book_fee), step=50.0, key=f"cust_book_val_{i}")
+            else:
+                books_fee = float(default_book_fee)
+
+        with c3:
             ipad_option = st.selectbox(
                 "iPad Package / Migration",
                 [
@@ -175,12 +180,26 @@ for i, tab in enumerate(tabs):
                     "SAR 2,800 - Full iPad Package (Spot Payment Offer)",
                     "SAR 600 - Migration Only (License & Config)",
                     "SAR 700 - Migration with Pen",
-                    "SAR 800 - Migration with Pen & Cover"
+                    "SAR 800 - Migration with Pen & Cover",
+                    "Custom Value"
                 ],
                 key=f"ipad_opt_{i}"
             )
             
-        with c3:
+            ipad_fee = 0.0
+            if "2,800" in ipad_option:
+                ipad_fee = 2800.0
+                full_ipad_pkg_students.append(student_name_input)
+            elif "600" in ipad_option:
+                ipad_fee = 600.0
+            elif "700" in ipad_option:
+                ipad_fee = 700.0
+            elif "800" in ipad_option:
+                ipad_fee = 800.0
+            elif ipad_option == "Custom Value":
+                ipad_fee = st.number_input("Custom iPad/Migration Fee (SAR)", min_value=0.0, value=0.0, step=50.0, key=f"cust_ipad_val_{i}")
+            
+        with c4:
             bus_options_list = [
                 "None",
                 "One Side (1 Term) - SAR 1,500",
@@ -193,8 +212,25 @@ for i, tab in enumerate(tabs):
                     "Old Student: 1 Side Whole Year - SAR 2,000",
                     "Old Student: 2 Side Whole Year - SAR 4,000"
                 ])
+            bus_options_list.append("Custom Value")
                 
             bus_option = st.selectbox("Bus Transportation", bus_options_list, key=f"bus_{i}")
+
+            bus_fee = 0.0
+            if "1,500" in bus_option:
+                bus_fee = 1500.0
+            elif "2,000" in bus_option:
+                bus_fee = 2000.0
+            elif "3,000" in bus_option:
+                bus_fee = 3000.0
+            elif "4,000" in bus_option:
+                bus_fee = 4000.0
+            elif "5,000" in bus_option:
+                bus_fee = 5000.0
+            elif "6,500" in bus_option:
+                bus_fee = 6500.0
+            elif bus_option == "Custom Value":
+                bus_fee = st.number_input("Custom Bus Fee (SAR)", min_value=0.0, value=0.0, step=50.0, key=f"cust_bus_val_{i}")
 
         if student_type == "Returning Student":
             base_tuition = old_tuition_map.get(grade, 28500)
@@ -207,40 +243,8 @@ for i, tab in enumerate(tabs):
         vat_amount = net_tuition * vat_rate
         tuition_with_vat = net_tuition + vat_amount
 
-        books_fee = books_fee_map.get(grade, 1200)
-        
-        ipad_fee = 0
-        if "2,800" in ipad_option:
-            ipad_fee = 2800
-            full_ipad_pkg_students.append(student_name_input)
-        elif "600" in ipad_option:
-            ipad_fee = 600
-        elif "700" in ipad_option:
-            ipad_fee = 700
-        elif "800" in ipad_option:
-            ipad_fee = 800
-
-        bus_fee = 0
-        if "1,500" in bus_option:
-            bus_fee = 1500
-        elif "2,000" in bus_option:
-            bus_fee = 2000
-        elif "3,000" in bus_option:
-            bus_fee = 3000
-        elif "4,000" in bus_option:
-            bus_fee = 4000
-        elif "5,000" in bus_option:
-            bus_fee = 5000
-        elif "6,500" in bus_option:
-            bus_fee = 6500
-
         total_student_fee = tuition_with_vat + books_fee + ipad_fee + bus_fee
-        first_pay = (tuition_with_vat / 2) + books_fee
-        second_pay = (tuition_with_vat / 2) + ipad_fee + bus_fee
-
         family_total_quote += total_student_fee
-        family_first_payment += first_pay
-        family_second_payment += second_pay
 
         student_summaries.append({
             "Student Name": student_name_input,
@@ -328,10 +332,6 @@ st.table(pd.DataFrame(totals_table_data))
 
 st.markdown(f"### **Grand Total Quote: `{family_total_quote:,.2f} SAR`**")
 
-col_p1, col_p2 = st.columns(2)
-col_p1.info(f"**Term 1 Payment Required:** `{family_first_payment:,.2f} SAR`")
-col_p2.success(f"**Term 2 Payment Required:** `{family_second_payment:,.2f} SAR`")
-
 if len(full_ipad_pkg_students) > 0:
     with st.container(border=True):
         st.subheader("📱 Full Student iPad Package Details")
@@ -375,7 +375,7 @@ if len(full_ipad_pkg_students) > 0:
 st.divider()
 
 # ---------------------------------------------------------
-# 6. EXACT MATCH PDF GENERATOR (UPDATED FONT SIZES & SPACING)
+# 6. EXACT MATCH PDF GENERATOR (ALWAYS-BOTTOM SIGNATURE)
 # ---------------------------------------------------------
 def create_pdf_bytes():
     try:
@@ -385,22 +385,22 @@ def create_pdf_bytes():
             pagesize=letter, 
             rightMargin=25, 
             leftMargin=25, 
-            topMargin=65,    # Adjusted top margin for breathing space
-            bottomMargin=25
+            topMargin=65,
+            bottomMargin=80  # Reserved space so table content never collides with fixed bottom signatures
         )
         
         elements = []
         styles = getSampleStyleSheet()
 
-        # --- Typography Styles (Increased Font Sizes) ---
+        # --- Typography Styles ---
         section_heading_style = ParagraphStyle(
             'SectionHeader',
             parent=styles['Heading2'],
             fontName='Helvetica-Bold',
-            fontSize=11,          # Increased from 10
+            fontSize=11,
             leading=13,
             textColor=colors.HexColor('#0B2545'),
-            spaceBefore=6,        # Increased space before heading
+            spaceBefore=6,
             spaceAfter=5
         )
         
@@ -408,7 +408,7 @@ def create_pdf_bytes():
             'MetaHeader',
             parent=styles['Normal'],
             fontName='Helvetica-Bold',
-            fontSize=9.5,         # Increased from 8.5
+            fontSize=9.5,
             leading=12,
             textColor=colors.HexColor('#0B2545')
         )
@@ -421,7 +421,7 @@ def create_pdf_bytes():
             'TableHdr',
             parent=styles['Normal'],
             fontName='Helvetica-Bold',
-            fontSize=8.5,         # Increased from 7.5
+            fontSize=8.5,
             leading=10.5,
             textColor=colors.white,
             alignment=1
@@ -431,7 +431,7 @@ def create_pdf_bytes():
             'TableBody',
             parent=styles['Normal'],
             fontName='Helvetica',
-            fontSize=8.5,         # Increased from 7.5
+            fontSize=8.5,
             leading=10.5,
             textColor=colors.HexColor('#1E293B'),
             alignment=1
@@ -441,7 +441,7 @@ def create_pdf_bytes():
             'TableBodyLeft',
             parent=styles['Normal'],
             fontName='Helvetica-Bold',
-            fontSize=8.5,         # Increased from 7.5
+            fontSize=8.5,
             leading=10.5,
             textColor=colors.HexColor('#0B2545'),
             alignment=0
@@ -508,8 +508,8 @@ def create_pdf_bytes():
             ('ALIGN', (0,0), (-1,-1), 'CENTER'),
             ('VALIGN', (0,0), (-1,-1), 'MIDDLE'),
             ('GRID', (0,0), (-1,-1), 0.5, colors.HexColor('#CBD5E1')),
-            ('TOPPADDING', (0,0), (-1,-1), 3.5),     # Increased cell padding
-            ('BOTTOMPADDING', (0,0), (-1,-1), 3.5),  # Increased cell padding
+            ('TOPPADDING', (0,0), (-1,-1), 3.5),
+            ('BOTTOMPADDING', (0,0), (-1,-1), 3.5),
             ('BACKGROUND', (0,1), (-1,-1), colors.HexColor('#F8FAFC')),
         ]))
         elements.append(pdf_t1)
@@ -566,19 +566,19 @@ def create_pdf_bytes():
         elements.append(Spacer(1, 8))
 
         # -----------------------------------------------------
-        # 4. GRAND TOTAL & PAYMENT SUMMARY BANNER
+        # 4. GRAND TOTAL SUMMARY BANNER
         # -----------------------------------------------------
         summary_p_style = ParagraphStyle(
             'GrandTotalBanner',
             parent=styles['Normal'],
             fontName='Helvetica-Bold',
-            fontSize=9.5,         # Increased from 9
+            fontSize=9.5,
             leading=12.5,
             textColor=colors.HexColor('#0B2545'),
             alignment=1
         )
         
-        banner_text = f"Grand Total Quote: <font color='#059669'>{family_total_quote:,.2f} SAR</font> &nbsp;&nbsp;|&nbsp;&nbsp; Term 1 Payment: {family_first_payment:,.2f} SAR &nbsp;&nbsp;|&nbsp;&nbsp; Term 2 Payment: {family_second_payment:,.2f} SAR"
+        banner_text = f"Grand Total Quote: <font color='#059669'>{family_total_quote:,.2f} SAR</font>"
         
         banner_table = Table([[Paragraph(banner_text, summary_p_style)]], colWidths=[555])
         banner_table.setStyle(TableStyle([
@@ -660,38 +660,44 @@ def create_pdf_bytes():
             elements.append(r_table)
 
         # -----------------------------------------------------
-        # 6. PARENT / GUARDIAN SIGNATURE SECTION
+        # 6. ABSOLUTE FIXED BOTTOM SIGNATURE CANVAS DRAWING
         # -----------------------------------------------------
-        elements.append(Spacer(1, 12))
-        
-        sig_label_style = ParagraphStyle('SigLabel', parent=styles['Normal'], fontName='Helvetica-Bold', fontSize=8.5, leading=10.5, textColor=colors.HexColor('#0B2545'))
-        sig_sub_style = ParagraphStyle('SigSub', parent=styles['Normal'], fontName='Helvetica', fontSize=7.5, leading=9.5, textColor=colors.HexColor('#64748B'))
+        def draw_bottom_signatures(canvas, doc):
+            canvas.saveState()
+            
+            sig_label_style = ParagraphStyle('SigLabel', parent=styles['Normal'], fontName='Helvetica-Bold', fontSize=8.5, leading=10.5, textColor=colors.HexColor('#0B2545'))
+            sig_sub_style = ParagraphStyle('SigSub', parent=styles['Normal'], fontName='Helvetica', fontSize=7.5, leading=9.5, textColor=colors.HexColor('#64748B'))
 
-        sig_cell_left = [
-            Paragraph("<b>Parent / Guardian Acknowledgment:</b>", sig_label_style),
-            Spacer(1, 14),
-            Paragraph("__________________________________________", sig_sub_style),
-            Paragraph("Signature & Date", sig_sub_style)
-        ]
+            sig_cell_left = [
+                Paragraph("<b>Parent / Guardian Acknowledgment:</b>", sig_label_style),
+                Spacer(1, 14),
+                Paragraph("__________________________________________", sig_sub_style),
+                Paragraph("Signature & Date", sig_sub_style)
+            ]
 
-        sig_cell_right = [
-            Paragraph("<b>For Yenepoya International Schools:</b>", sig_label_style),
-            Spacer(1, 14),
-            Paragraph("__________________________________________", sig_sub_style),
-            Paragraph("Authorized Stamp & Date", sig_sub_style)
-        ]
+            sig_cell_right = [
+                Paragraph("<b>For Yenepoya International Schools:</b>", sig_label_style),
+                Spacer(1, 14),
+                Paragraph("__________________________________________", sig_sub_style),
+                Paragraph("Authorized Stamp & Date", sig_sub_style)
+            ]
 
-        sig_table = Table([[sig_cell_left, sig_cell_right]], colWidths=[275, 280])
-        sig_table.setStyle(TableStyle([
-            ('VALIGN', (0,0), (-1,-1), 'TOP'),
-            ('LEFTPADDING', (0,0), (-1,-1), 0),
-            ('RIGHTPADDING', (0,0), (-1,-1), 0),
-            ('TOPPADDING', (0,0), (-1,-1), 0),
-            ('BOTTOMPADDING', (0,0), (-1,-1), 0),
-        ]))
-        elements.append(sig_table)
+            sig_table = Table([[sig_cell_left, sig_cell_right]], colWidths=[275, 280])
+            sig_table.setStyle(TableStyle([
+                ('VALIGN', (0,0), (-1,-1), 'TOP'),
+                ('LEFTPADDING', (0,0), (-1,-1), 0),
+                ('RIGHTPADDING', (0,0), (-1,-1), 0),
+                ('TOPPADDING', (0,0), (-1,-1), 0),
+                ('BOTTOMPADDING', (0,0), (-1,-1), 0),
+            ]))
 
-        doc.build(elements)
+            # Position at page bottom above footer margin (x=25, y=55)
+            w, h = sig_table.wrap(555, 60)
+            sig_table.drawOn(canvas, 25, 55)
+            canvas.restoreState()
+
+        # Build PDF with Page Canvas Callback
+        doc.build(elements, onFirstPage=draw_bottom_signatures, onLaterPages=draw_bottom_signatures)
         content_buffer.seek(0)
 
         template_path = "LetterHead (Updated).pdf"
