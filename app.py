@@ -178,7 +178,7 @@ for i, tab in enumerate(tabs):
                 "iPad Package / Migration",
                 [
                     "None",
-                    "SAR 2,800 - Full iPad Package (Spot Payment Offer)",
+                    "SAR 2,800 - Full iPad Package",
                     "SAR 600 - Migration Only (License & Config)",
                     "SAR 700 - Migration with Pen",
                     "SAR 800 - Migration with Pen & Cover",
@@ -361,9 +361,9 @@ if len(full_ipad_pkg_students) > 0:
         st.divider()
 
         st.warning(
-            "**💳 Payment Terms Policy:**\n\n"
-            "The discounted rate of **SAR 2,800** is an **instant/spot payment offer** at the time of registration. "
-            "If choosing the **C-Pay 12-Month Installment Plan**, the total price is **SAR 3,000** (12 monthly payments of SAR 250)."
+            "**💳 Payment Options:**\n\n"
+            "The total package fee is **SAR 2,800**. "
+            "Parents can pay full upfront or opt for the **C-Pay 12-Month Installment Plan** (12 payments of ~SAR 233.33/month)."
         )
 
         st.error(
@@ -376,7 +376,7 @@ if len(full_ipad_pkg_students) > 0:
 st.divider()
 
 # ---------------------------------------------------------
-# 6. EXACT MATCH PDF GENERATOR (WELL-SPACED SIGNATURE)
+# 6. EXACT MATCH PDF GENERATOR
 # ---------------------------------------------------------
 def create_pdf_bytes():
     try:
@@ -387,7 +387,7 @@ def create_pdf_bytes():
             rightMargin=25, 
             leftMargin=25, 
             topMargin=65,
-            bottomMargin=130  # Increased margin to avoid overlap with signatures at y=120
+            bottomMargin=130
         )
         
         elements = []
@@ -634,7 +634,7 @@ def create_pdf_bytes():
 
             policy_style = ParagraphStyle('PolicyBox', parent=styles['Normal'], fontName='Helvetica', fontSize=7.5, leading=9.5, textColor=colors.HexColor('#1E293B'))
             
-            p_terms = "<b>💳 Payment Terms Policy:</b> Discounted rate of <b>SAR 2,800</b> is an instant payment offer at registration. C-Pay 12-Month Plan total price is <b>SAR 3,000</b> (12 monthly payments of SAR 250)."
+            p_terms = "<b>💳 Payment Options:</b> Package fee is <b>SAR 2,800</b>. Parents can pay upfront or select the 12-Month Installment Plan via C-Pay."
             p_table = Table([[Paragraph(p_terms, policy_style)]], colWidths=[555])
             p_table.setStyle(TableStyle([
                 ('BACKGROUND', (0,0), (-1,-1), colors.HexColor('#FEF3C7')),
@@ -691,12 +691,11 @@ def create_pdf_bytes():
                 ('BOTTOMPADDING', (0,0), (-1,-1), 0),
             ]))
 
-            # Raised y to 120 so signature lines sit above letterhead footer image
             w, h = sig_table.wrap(555, 60)
             sig_table.drawOn(canvas, 25, 120)
             canvas.restoreState()
 
-        # Build PDF with Page Canvas Callback
+        # Build PDF
         doc.build(elements, onFirstPage=draw_bottom_signatures, onLaterPages=draw_bottom_signatures)
         content_buffer.seek(0)
 
