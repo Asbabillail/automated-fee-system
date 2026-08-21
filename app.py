@@ -406,52 +406,51 @@ col_p1.info(f"**Term 1 Payment Required:** `{family_first_payment:,.2f} SAR`")
 col_p2.success(f"**Term 2 Payment Required:** `{family_second_payment:,.2f} SAR`")
 
 # ---------------------------------------------------------
-# ATTRACTIVE IPAD SPECIFICATION CALLOUT CARD
+# ATTRACTIVE IPAD SPECIFICATION CALLOUT CARD (PURE STREAMLIT)
 # ---------------------------------------------------------
 if len(full_ipad_pkg_students) > 0:
-    st.markdown(f"""
-    <div class="ipad-hero-card">
-        <div class="ipad-hero-title">📱 Full Student iPad Package Details</div>
-        <div class="ipad-hero-sub">
-            <b>Selected for Student(s):</b> <span style="color: #38BDF8;">{', '.join(full_ipad_pkg_students)}</span>
-        </div>
-        <hr style="border-color: #374151; margin-bottom: 20px;">
-        <div class="ipad-grid">
-            <div>
-                <div class="ipad-section-title">📦 Included Hardware & Protection:</div>
-                <ul class="ipad-bullet-list">
-                    <li><b>Brand New iPad A16 (128GB Storage)</b></li>
-                    <li><b>Rugged Heavy-Duty Protective Case</b></li>
-                    <li><b>School-Approved High-Precision Stylus Pen</b></li>
-                    <li><b>AppleCare+ Enterprise Warranty</b> (36 Months full coverage)</li>
-                </ul>
-            </div>
-            <div>
-                <div class="ipad-section-title">⚙️ Digital Ecosystem & Management:</div>
-                <ul class="ipad-bullet-list">
-                    <li><b>Jamf School Management System</b> (MDM)</li>
-                    <li><b>Microsoft 365 Education Account</b> (1TB Cloud storage)</li>
-                    <li><b>Apple Managed Educational ID & 200GB iCloud</b></li>
-                    <li><b>Pre-configured Security Profiles & Learning Apps</b></li>
-                </ul>
-            </div>
-        </div>
+    # Outer Card Container
+    with st.container(border=True):
+        st.subheader("📱 Full Student iPad Package Details")
+        st.markdown(f"**Selected for Student(s):** :blue[{', '.join(full_ipad_pkg_students)}]")
+        st.divider()
 
-        <div style="background-color: #1e293b; border-left: 4px solid #f59e0b; padding: 12px 16px; margin-top: 15px; border-radius: 6px;">
-            <div style="color: #fbbf24; font-weight: bold; margin-bottom: 6px;">💳 Payment Terms Policy:</div>
-            <p style="color: #e2e8f0; margin: 0; font-size: 0.9em;">
-                The discounted rate of <b>SAR 2,800</b> is an <b>instant/spot payment offer</b> at the time of registration. If choosing the <b>C-Pay 12-Month Installment Plan</b>, the total price is <b>SAR 3,000</b> (12 monthly payments of SAR 250).
-            </p>
-        </div>
+        # Two-Column Specs Layout
+        col_hw, col_sw = st.columns(2)
+        with col_hw:
+            st.markdown("**📦 Included Hardware & Protection:**")
+            st.markdown("""
+            * **Brand New iPad A16 (128GB Storage)**
+            * **Rugged Heavy-Duty Protective Case**
+            * **School-Approved High-Precision Stylus Pen**
+            * **AppleCare+ Enterprise Warranty** (36 Months full coverage)
+            """)
 
-        <div style="background-color: #1e293b; border-left: 4px solid #ef4444; padding: 12px 16px; margin-top: 12px; border-radius: 6px;">
-            <div style="color: #f87171; font-weight: bold; margin-bottom: 6px;">⚠️ Annual Software License Renewal Notice:</div>
-            <p style="color: #e2e8f0; margin: 0; font-size: 0.9em;">
-                The initial package fee covers Year 1 hardware, provisioning, and software setups. All active management licenses (Jamf MDM, Microsoft 365, Cloud platform access) <b>must be renewed annually</b> by parents to keep the device compliant with school systems.
-            </p>
-        </div>
-    </div>
-    """, unsafe_allow_html=True)
+        with col_sw:
+            st.markdown("**⚙️ Digital Ecosystem & Management:**")
+            st.markdown("""
+            * **Jamf School Management System** (MDM)
+            * **Microsoft 365 Education Account** (1TB Cloud storage)
+            * **Apple Managed Educational ID & 200GB iCloud**
+            * **Pre-configured Security Profiles & Learning Apps**
+            """)
+
+        st.divider()
+
+        # Payment Terms Policy Callout
+        st.warning(
+            "**💳 Payment Terms Policy:**\n\n"
+            "The discounted rate of **SAR 2,800** is an **instant/spot payment offer** at the time of registration. "
+            "If choosing the **C-Pay 12-Month Installment Plan**, the total price is **SAR 3,000** (12 monthly payments of SAR 250)."
+        )
+
+        # Software License Renewal Notice Callout
+        st.error(
+            "**⚠️ Annual Software License Renewal Notice:**\n\n"
+            "The initial package fee covers Year 1 hardware, provisioning, and software setups. "
+            "All active management licenses (Jamf MDM, Microsoft 365, Cloud platform access) **must be renewed annually** "
+            "by parents to keep the device compliant with school systems."
+        )
 
 st.divider()
 
