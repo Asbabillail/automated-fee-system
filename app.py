@@ -19,7 +19,7 @@ st.set_page_config(
     layout="wide"
 )
 
-# Force Saudi Arabia Timezone (Asia/Riyadh UTC+3)
+# Force KSA Standard Time (Asia/Riyadh UTC+3)
 try:
     ksa_tz = zoneinfo.ZoneInfo("Asia/Riyadh")
     current_ksa_date = datetime.now(ksa_tz).date()
@@ -107,7 +107,7 @@ with col_header_right:
     """, unsafe_allow_html=True)
 
 # ---------------------------------------------------------
-# 2. DATA MAPPINGS (INCLUDES GRADES 10, 11, 12)
+# 2. MASTER DATA MAPPINGS (GRADES KG1 - GRADE 12)
 # ---------------------------------------------------------
 books_fee_map = {
     "KG. 1": 500, "KG. 2": 500, "KG. 3": 500,
@@ -162,7 +162,7 @@ family_total_quote = 0.0
 family_first_payment = 0.0
 family_second_payment = 0.0
 student_summaries = []
-ipad_details_list = []
+full_ipad_pkg_students = []
 
 # ---------------------------------------------------------
 # 4. DYNAMIC STUDENT INPUT TABS
@@ -185,19 +185,37 @@ for i, tab in enumerate(tabs):
             default_discount = 35 + (5 if i > 0 else 0)
             discount_pct = st.slider("Discount (%)", 0, 50, min(default_discount, 50), 5, key=f"disc_{i}")
             
-            # iPad Controls
-            include_ipad = st.checkbox("Include iPad (SAR 2,800)", value=False, key=f"ipad_{i}")
-            show_ipad_details = False
-            if include_ipad:
-                show_ipad_details = st.checkbox("Include Full iPad Bundle Details in Quote", value=True, key=f"show_ipad_det_{i}")
+            # Expanded iPad Dropdown Menu
+            ipad_option = st.selectbox(
+                "iPad / Migration Option",
+                [
+                    "None",
+                    "SAR 2,800 - Full Package (Spot Payment)",
+                    "SAR 600 - Migration Only (License & Config)",
+                    "SAR 700 - Migration with Pen",
+                    "SAR 800 - Migration with Pen & Cover"
+                ],
+                key=f"ipad_opt_{i}"
+            )
             
         with c3:
-            bus_option = st.selectbox(
-                "Bus Transportation", 
-                ["None", "One Way (SAR 3,000)", "One Way (SAR 3,500)", "Two Way (SAR 5,000)", "Two Way (SAR 6,500)"],
-                key=f"bus_{i}"
-            )
+            # Dynamic Transportation Selector
+            bus_options_list = [
+                "None",
+                "One Side (1 Term) - SAR 1,500",
+                "One Side (Whole Year) - SAR 3,000",
+                "Two Side (Whole Year) - SAR 5,000",
+                "Two Side Premium (Whole Year) - SAR 6,500"
+            ]
+            if student_type == "Returning Student":
+                bus_options_list.extend([
+                    "Old Student: 1 Side Whole Year - SAR 2,000",
+                    "Old Student: 2 Side Whole Year - SAR 4,000"
+                ])
+                
+            bus_option = st.selectbox("Bus Transportation", bus_options_list, key=f"bus_{i}")
 
+        # Fee Calculations
         if student_type == "Returning Student":
             base_tuition = old_tuition_map.get(grade, 28500)
         else:
@@ -208,15 +226,32 @@ for i, tab in enumerate(tabs):
         vat_amount = net_tuition * vat_rate
         tuition_with_vat = net_tuition + vat_amount
 
+        # Mandatory Book Fee
         books_fee = books_fee_map.get(grade, 1200)
         cert_fee = cert_fee_map.get(grade, 0)
-        ipad_fee = 2800 if include_ipad else 0
+        
+        # iPad Fee Parse
+        ipad_fee = 0
+        if "2,800" in ipad_option:
+            ipad_fee = 2800
+            full_ipad_pkg_students.append(student_name_input)
+        elif "600" in ipad_option:
+            ipad_fee = 600
+        elif "700" in ipad_option:
+            ipad_fee = 700
+        elif "800" in ipad_option:
+            ipad_fee = 800
 
+        # Bus Fee Parse
         bus_fee = 0
-        if "3,000" in bus_option:
+        if "1,500" in bus_option:
+            bus_fee = 1500
+        elif "2,000" in bus_option:
+            bus_fee = 2000
+        elif "3,000" in bus_option:
             bus_fee = 3000
-        elif "3,500" in bus_option:
-            bus_fee = 3500
+        elif "4,000" in bus_option:
+            bus_fee = 4000
         elif "5,000" in bus_option:
             bus_fee = 5000
         elif "6,500" in bus_option:
@@ -236,22 +271,22 @@ for i, tab in enumerate(tabs):
             "Grade": grade,
             "Base Tuition": base_tuition,
             "Discount %": f"{discount_pct}%",
-            "Discount Amount": discount_amount,
+            "Discount Amt": discount_amount,
             "VAT": vat_amount,
-            "Mandatory Fees": books_fee + cert_fee,
-            "Add-Ons": ipad_fee + bus_fee,
+            "Mandatory Books": books_fee,
+            "Cert Fee": cert_fee,
+            "iPad Fee": ipad_fee,
+            "Bus Fee": bus_fee,
             "Total (SAR)": total_student_fee
         })
 
-        if include_ipad and show_ipad_details:
-            ipad_details_list.append(student_name_input)
-
         st.markdown('<div class="quote-box">', unsafe_allow_html=True)
-        m1, m2, m3, m4 = st.columns(4)
-        m1.metric(f"Base Tuition ({student_type})", f"{base_tuition:,.2f} SAR")
+        m1, m2, m3, m4, m5 = st.columns(5)
+        m1.metric("Base Tuition", f"{base_tuition:,.2f} SAR")
         m2.metric(f"Discount ({discount_pct}%)", f"-{discount_amount:,.2f} SAR")
-        m3.metric(f"VAT ({int(vat_rate*100)}%)", f"+{vat_amount:,.2f} SAR")
-        m4.metric("Student Total", f"{total_student_fee:,.2f} SAR")
+        m3.metric("Mandatory Books", f"{books_fee:,.2f} SAR")
+        m4.metric("iPad & Bus Add-Ons", f"{ipad_fee + bus_fee:,.2f} SAR")
+        m5.metric("Student Total", f"{total_student_fee:,.2f} SAR")
         st.markdown('</div>', unsafe_allow_html=True)
 
 # ---------------------------------------------------------
@@ -269,10 +304,12 @@ val_col3.error(f"🛑 **Quotation Expires:** {quote_expiry_date.strftime('%d %b 
 df_family = pd.DataFrame(student_summaries)
 st.dataframe(df_family.style.format({
     "Base Tuition": "{:,.2f}",
-    "Discount Amount": "-{:,.2f}",
+    "Discount Amt": "-{:,.2f}",
     "VAT": "+{:,.2f}",
-    "Mandatory Fees": "{:,.2f}",
-    "Add-Ons": "{:,.2f}",
+    "Mandatory Books": "{:,.2f}",
+    "Cert Fee": "{:,.2f}",
+    "iPad Fee": "{:,.2f}",
+    "Bus Fee": "{:,.2f}",
     "Total (SAR)": "{:,.2f}"
 }), use_container_width=True)
 
@@ -282,26 +319,29 @@ col_p1, col_p2 = st.columns(2)
 col_p1.info(f"**Total First Installment:** `{family_first_payment:,.2f} SAR`")
 col_p2.success(f"**Total Second Installment:** `{family_second_payment:,.2f} SAR`")
 
-# Render iPad Specifications & Renewal Notice if toggled
-if len(ipad_details_list) > 0:
+# Render iPad Specifications, Installment Notice & Renewal Warning
+if len(full_ipad_pkg_students) > 0:
     st.divider()
-    st.subheader("📱 Student iPad Package Details & License Compliance")
-    st.write(f"**Selected for:** {', '.join(ipad_details_list)}")
+    st.subheader("📱 Full Student iPad Package Specifications & Compliance")
+    st.write(f"**Selected for:** {', '.join(full_ipad_pkg_students)}")
     
     st.markdown("""
-    * **Hardware & Protection:** New iPad A16 (128GB), Rugged Protective Cover, and School-Approved Stylus.
-    * **Security & Care:** AppleCare+ for Enterprise (36 Months coverage).
-    * **Management & Licenses:** Jamf School Management (MDM), Microsoft School Account (1TB Cloud), 200GB iCloud & Apple Managed Account.
-    * **Technical Services:** Pre-configured school apps, security profiles, and full technical support.
+    * **Hardware & Accessories:** New iPad A16 (128GB), Rugged Protective Cover, and School-Approved Stylus.
+    * **Security & Coverage:** AppleCare+ for Enterprise (36 Months coverage).
+    * **Software & Managed Accounts:** Jamf School Management (MDM), Microsoft School Account (1TB Cloud), 200GB iCloud & Apple Managed Account.
+    * **Technical Services:** Full device configuration, security profiles, and school app suite setup.
     
-    > ⚠️ **IMPORTANT RENEWAL NOTICE:**  
-    > *The initial SAR 2,800 package covers Year 1 device provisioning and software setup. All software management licenses (Jamf MDM, Microsoft 365, Cloud services) **must be renewed annually** by the parent/guardian to maintain network access and device compliance.*
+    > 💳 **PAYMENT TERMS NOTICE:**  
+    > *The **SAR 2,800** price is valid **ONLY for instant/spot payment** at registration. If paying via C-Pay 12-month installment, total price is **SAR 3,000** (12 monthly payments of SAR 250).*
+    
+    > ⚠️ **IMPORTANT ANNUAL RENEWAL NOTICE:**  
+    > *The initial package fee covers Year 1 device provisioning and software licensing. All software management licenses (Jamf MDM, Microsoft 365, Cloud services) **must be renewed annually** by the parent/guardian to maintain device network access.*
     """)
 
 st.divider()
 
 # ---------------------------------------------------------
-# 6. PDF GENERATION BUILDER
+# 6. PDF GENERATION BUILDER WITH EXPANDED COLUMNS
 # ---------------------------------------------------------
 def create_pdf_bytes():
     try:
@@ -309,10 +349,10 @@ def create_pdf_bytes():
         doc = SimpleDocTemplate(
             content_buffer, 
             pagesize=letter, 
-            rightMargin=36, 
-            leftMargin=36, 
-            topMargin=130, 
-            bottomMargin=80
+            rightMargin=25, 
+            leftMargin=25, 
+            topMargin=125, 
+            bottomMargin=75
         )
         
         elements = []
@@ -322,39 +362,44 @@ def create_pdf_bytes():
             'DocTitle',
             parent=styles['Heading1'],
             fontName='Helvetica-Bold',
-            fontSize=14,
-            leading=18,
+            fontSize=13,
+            leading=16,
             textColor=colors.HexColor('#0B2545'),
-            spaceAfter=10
+            spaceAfter=8
         )
         
         meta_style = ParagraphStyle(
             'MetaText',
             parent=styles['Normal'],
             fontName='Helvetica',
-            fontSize=9,
-            leading=13,
+            fontSize=8.5,
+            leading=12,
             textColor=colors.HexColor('#333333')
         )
 
         elements.append(Paragraph("OFFICIAL ADMISSION FEE QUOTATION", title_style))
         elements.append(Paragraph(f"<b>Parent / Guardian:</b> {parent_name} &nbsp;&nbsp;|&nbsp;&nbsp; <b>Tax Status:</b> {nationality}", meta_style))
         elements.append(Paragraph(f"<b>Issue Date:</b> {issue_date.strftime('%d %b %Y')} &nbsp;&nbsp;|&nbsp;&nbsp; <b>Discount Valid Until:</b> {discount_expiry_date.strftime('%d %b %Y')} &nbsp;&nbsp;|&nbsp;&nbsp; <b>Quote Expiry:</b> {quote_expiry_date.strftime('%d %b %Y')}", meta_style))
-        elements.append(Spacer(1, 12))
+        elements.append(Spacer(1, 10))
 
-        table_data = [["Student Name", "Grade", "Base Tuition", "Disc %", "Disc Amt", "VAT", "Total (SAR)"]]
+        # Explicit Multi-Column PDF Header Table
+        table_data = [["Student Name", "Grade", "Base Tuition", "Disc %", "Disc Amt", "Books", "Cert", "iPad", "Bus", "Total (SAR)"]]
         for s in student_summaries:
             table_data.append([
                 str(s["Student Name"]), 
                 str(s["Grade"]), 
-                f"{s['Base Tuition']:,.2f}", 
+                f"{s['Base Tuition']:,.0f}", 
                 str(s["Discount %"]),
-                f"-{s['Discount Amount']:,.2f}", 
-                f"+{s['VAT']:,.2f}", 
+                f"-{s['Discount Amt']:,.0f}", 
+                f"{s['Mandatory Books']:,.0f}",
+                f"{s['Cert Fee']:,.0f}",
+                f"{s['iPad Fee']:,.0f}",
+                f"{s['Bus Fee']:,.0f}",
                 f"{s['Total (SAR)']:,.2f}"
             ])
         
-        pdf_table = Table(table_data, colWidths=[110, 50, 80, 45, 75, 65, 115])
+        # Exact column width alignment (562pt total letter printable width)
+        pdf_table = Table(table_data, colWidths=[90, 45, 60, 40, 55, 45, 35, 40, 40, 112])
         pdf_table.setStyle(TableStyle([
             ('BACKGROUND', (0,0), (-1,0), colors.HexColor('#0B2545')),
             ('TEXTCOLOR', (0,0), (-1,0), colors.white),
@@ -362,9 +407,9 @@ def create_pdf_bytes():
             ('VALIGN', (0,0), (-1,-1), 'MIDDLE'),
             ('GRID', (0,0), (-1,-1), 0.5, colors.HexColor('#CBD5E1')),
             ('FONTNAME', (0,0), (-1,0), 'Helvetica-Bold'),
-            ('FONTSIZE', (0,0), (-1,-1), 9),
-            ('BOTTOMPADDING', (0,0), (-1,-1), 6),
-            ('TOPPADDING', (0,0), (-1,-1), 6),
+            ('FONTSIZE', (0,0), (-1,-1), 8),
+            ('BOTTOMPADDING', (0,0), (-1,-1), 5),
+            ('TOPPADDING', (0,0), (-1,-1), 5),
         ]))
         elements.append(pdf_table)
         elements.append(Spacer(1, 10))
@@ -377,21 +422,21 @@ def create_pdf_bytes():
             'SummaryBox',
             parent=styles['Normal'],
             fontName='Helvetica',
-            fontSize=10,
-            leading=15,
+            fontSize=9.5,
+            leading=14,
             textColor=colors.HexColor('#0B2545')
         )))
 
-        # PDF iPad License Note
-        if len(ipad_details_list) > 0:
-            elements.append(Spacer(1, 10))
-            ipad_pdf_text = f"<b>iPad Package Specs & Renewal Notice:</b> Included for ({', '.join(ipad_details_list)}). Includes iPad A16 128GB, Cover, Stylus, AppleCare+ Enterprise, Jamf MDM, Microsoft 365, and Apple Managed Services. <i>*Note: Software and MDM management licenses must be renewed annually.</i>"
+        # Conditional iPad Specification & Payment Note in PDF
+        if len(full_ipad_pkg_students) > 0:
+            elements.append(Spacer(1, 8))
+            ipad_pdf_text = f"<b>iPad Package Specs & Terms:</b> Included for ({', '.join(full_ipad_pkg_students)}). Package includes iPad A16 128GB, Cover, Stylus, AppleCare+ Enterprise, Jamf MDM, Microsoft 365, and Apple Managed Services. <i>*SAR 2,800 offer valid only on instant payment (SAR 3,000 on 12-month installment). Software management licenses must be renewed annually.</i>"
             elements.append(Paragraph(ipad_pdf_text, ParagraphStyle(
                 'IPadBox',
                 parent=styles['Normal'],
                 fontName='Helvetica-Oblique',
-                fontSize=8,
-                leading=11,
+                fontSize=7.5,
+                leading=10,
                 textColor=colors.HexColor('#475569')
             )))
         
