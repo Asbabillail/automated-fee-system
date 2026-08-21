@@ -70,20 +70,92 @@ st.markdown("""
         box-shadow: 0 4px 6px rgba(0,0,0,0.3);
         margin-bottom: 20px;
     }
-    .ipad-hero-card {
-        background: linear-gradient(135deg, #1E293B 0%, #0F172A 100%);
-        border: 2px solid #38BDF8;
+    
+    /* Screenshot-Matched iPad Hero Box */
+    .ipad-screenshot-card {
+        background-color: #111827;
+        border: 2px solid #1D4ED8;
         border-radius: 12px;
-        padding: 25px;
-        margin-top: 20px;
+        padding: 24px;
+        margin-top: 25px;
         margin-bottom: 25px;
-        box-shadow: 0 6px 20px rgba(56, 189, 248, 0.2);
+        color: #F3F4F6;
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
     }
-    .ipad-hero-card h2 {
-        color: #38BDF8 !important;
-        margin-top: 0;
-        font-size: 1.6rem;
+    .ipad-screenshot-title {
+        color: #38BDF8;
+        font-size: 1.45rem;
+        font-weight: 700;
+        margin: 0 0 6px 0;
+        display: flex;
+        align-items: center;
+        gap: 8px;
     }
+    .ipad-screenshot-sub {
+        color: #9CA3AF;
+        font-size: 1.05rem;
+        margin-bottom: 20px;
+    }
+    .ipad-spec-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 24px;
+        margin-bottom: 20px;
+    }
+    .ipad-section-heading {
+        color: #FFFFFF;
+        font-weight: 700;
+        font-size: 1.05rem;
+        margin-bottom: 12px;
+    }
+    .ipad-spec-list {
+        list-style-type: disc;
+        padding-left: 20px;
+        margin: 0;
+        color: #D1D5DB;
+        line-height: 1.7;
+    }
+    .ipad-spec-list li {
+        margin-bottom: 6px;
+    }
+    .payment-terms-box {
+        background-color: #1F2937;
+        border: 1px solid #374151;
+        border-left: 4px solid #F59E0B;
+        border-radius: 8px;
+        padding: 16px;
+        margin-bottom: 14px;
+    }
+    .payment-terms-title {
+        color: #F59E0B;
+        font-weight: 700;
+        margin: 0 0 6px 0;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+    }
+    .renewal-notice-box {
+        background-color: #1F2937;
+        border: 1px solid #374151;
+        border-left: 4px solid #EF4444;
+        border-radius: 8px;
+        padding: 16px;
+    }
+    .renewal-notice-title {
+        color: #EF4444;
+        font-weight: 700;
+        margin: 0 0 6px 0;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+    }
+    .terms-body {
+        color: #D1D5DB;
+        margin: 0;
+        font-size: 0.95rem;
+        line-height: 1.5;
+    }
+
     [data-testid="stMetricValue"] {
         color: #38BDF8 !important;
     }
@@ -190,7 +262,7 @@ for i, tab in enumerate(tabs):
         c1, c2, c3 = st.columns(3)
         
         with c1:
-            student_type = st.selectbox("Student Type / Status", ["New Student", "Returning Student"], key=f"status_{i}")
+            student_type = st.selectbox("Student Status", ["New Student", "Returning Student"], key=f"status_{i}")
             grade = st.selectbox("Select Grade", list(new_tuition_map.keys()), key=f"grade_{i}")
             
         with c2:
@@ -300,10 +372,10 @@ for i, tab in enumerate(tabs):
         st.markdown('</div>', unsafe_allow_html=True)
 
 # ---------------------------------------------------------
-# 5. CONSOLIDATED SUMMARY & VALIDITY DISPLAY
+# 5. CONSOLIDATED SUMMARY & HORIZONTAL TABLE FORMATTING
 # ---------------------------------------------------------
 st.divider()
-st.subheader("📊 Clear Family Fee Breakdown")
+st.subheader("📊 Official Family Quotation Breakdown")
 
 # Display Validity Badges
 val_col1, val_col2, val_col3 = st.columns(3)
@@ -311,16 +383,39 @@ val_col1.info(f"📅 **Issue Date (KSA):** {issue_date.strftime('%d %b %Y')}")
 val_col2.warning(f"⏳ **Discount Valid Until:** {discount_expiry_date.strftime('%d %b %Y')} ({discount_validity_days} Days)")
 val_col3.error(f"🛑 **Quotation Expires:** {quote_expiry_date.strftime('%d %b %Y')} ({quote_validity_days} Days)")
 
-df_family = pd.DataFrame(student_summaries)
-st.dataframe(df_family.style.format({
-    "Base Tuition": "{:,.2f}",
-    "Discount Amt": "-{:,.2f}",
-    "VAT": "+{:,.2f}",
-    "Mandatory Books": "{:,.2f}",
-    "iPad Fee": "{:,.2f}",
-    "Bus Fee": "{:,.2f}",
-    "Total Fee (SAR)": "{:,.2f}"
-}), use_container_width=True)
+# Build Horizontal Format DataFrame
+metrics_labels = [
+    "Student Status",
+    "Grade Level",
+    "Base Tuition (SAR)",
+    "Discount Percentage",
+    "Discount Amount (SAR)",
+    "VAT Amount (SAR)",
+    "Mandatory Books Fee (SAR)",
+    "iPad Package / Migration (SAR)",
+    "Bus Transportation (SAR)",
+    "Student Total Fee (SAR)"
+]
+
+horizontal_data = {"Fee Component": metrics_labels}
+
+for s in student_summaries:
+    col_name = s["Student Name"]
+    horizontal_data[col_name] = [
+        s["Student Status"],
+        s["Grade"],
+        f"{s['Base Tuition']:,.2f}",
+        s["Discount %"],
+        f"-{s['Discount Amt']:,.2f}",
+        f"+{s['VAT']:,.2f}",
+        f"{s['Mandatory Books']:,.2f}",
+        f"{s['iPad Fee']:,.2f}",
+        f"{s['Bus Fee']:,.2f}",
+        f"{s['Total Fee (SAR)']:,.2f}"
+    ]
+
+df_horizontal = pd.DataFrame(horizontal_data)
+st.table(df_horizontal)
 
 st.markdown(f"### **Grand Total Family Quote: `{family_total_quote:,.2f} SAR`**")
 
@@ -329,18 +424,22 @@ col_p1.info(f"**Term 1 Payment Required:** `{family_first_payment:,.2f} SAR`")
 col_p2.success(f"**Term 2 Payment Required:** `{family_second_payment:,.2f} SAR`")
 
 # ---------------------------------------------------------
-# LARGE & ATTRACTIVE IPAD SPECIFICATION POP-OUT BOX
+# EXACT MATCH FULL IPAD PACKAGE SPECIFICATION CALLOUT CARD
 # ---------------------------------------------------------
 if len(full_ipad_pkg_students) > 0:
     st.markdown(f"""
-    <div class="ipad-hero-card">
-        <h2>📱 Full Student iPad Package Details</h2>
-        <p style="font-size: 1.1rem; color: #CBD5E1;"><b>Selected for Student(s):</b> <span style="color: #38BDF8; font-weight: bold;">{', '.join(full_ipad_pkg_students)}</span></p>
-        <hr style="border-color: #334155;">
-        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; font-size: 1.05rem;">
+    <div class="ipad-screenshot-card">
+        <div class="ipad-screenshot-title">
+            📱 Full Student iPad Package Details
+        </div>
+        <div class="ipad-screenshot-sub">
+            <b>Selected for Student(s):</b> <span style="color: #38BDF8;">{', '.join(full_ipad_pkg_students)}</span>
+        </div>
+        <hr style="border-color: #1F2937; margin-bottom: 20px;">
+        <div class="ipad-spec-grid">
             <div>
-                <p><b>📦 Included Hardware & Protection:</b></p>
-                <ul>
+                <div class="ipad-section-heading">📦 Included Hardware & Protection:</div>
+                <ul class="ipad-spec-list">
                     <li><b>Brand New iPad A16 (128GB Storage)</b></li>
                     <li><b>Rugged Heavy-Duty Protective Case</b></li>
                     <li><b>School-Approved High-Precision Stylus Pen</b></li>
@@ -348,25 +447,30 @@ if len(full_ipad_pkg_students) > 0:
                 </ul>
             </div>
             <div>
-                <p><b>⚙️ Digital Ecosystem & Management:</b></p>
-                <ul>
+                <div class="ipad-section-heading">⚙️ Digital Ecosystem & Management:</div>
+                <ul class="ipad-spec-list">
                     <li><b>Jamf School Management System</b> (MDM)</li>
                     <li><b>Microsoft 365 Education Account</b> (1TB Cloud storage)</li>
-                    <li><b>Apple Managed Educational ID</b> & 200GB iCloud</li>
+                    <li><b>Apple Managed Educational ID & 200GB iCloud</b></li>
                     <li><b>Pre-configured Security Profiles & Learning Apps</b></li>
                 </ul>
             </div>
         </div>
-        <hr style="border-color: #334155;">
-        <div style="background-color: #1E293B; padding: 15px; border-radius: 8px; border-left: 4px solid #F59E0B; margin-top: 10px;">
-            <p style="margin: 0; color: #F59E0B; font-weight: bold; font-size: 1rem;">💳 Payment Terms Policy:</p>
-            <p style="margin: 5px 0 0 0; color: #CBD5E1; font-size: 0.95rem;">
+        
+        <div class="payment-terms-box">
+            <div class="payment-terms-title">
+                💳 Payment Terms Policy:
+            </div>
+            <p class="terms-body">
                 The discounted rate of <b>SAR 2,800</b> is an <b>instant/spot payment offer</b> at the time of registration. If choosing the <b>C-Pay 12-Month Installment Plan</b>, the total price is <b>SAR 3,000</b> (12 monthly payments of SAR 250).
             </p>
         </div>
-        <div style="background-color: #1E293B; padding: 15px; border-radius: 8px; border-left: 4px solid #EF4444; margin-top: 10px;">
-            <p style="margin: 0; color: #EF4444; font-weight: bold; font-size: 1rem;">⚠️ Annual Software License Renewal Notice:</p>
-            <p style="margin: 5px 0 0 0; color: #CBD5E1; font-size: 0.95rem;">
+        
+        <div class="renewal-notice-box">
+            <div class="renewal-notice-title">
+                ⚠️ Annual Software License Renewal Notice:
+            </div>
+            <p class="terms-body">
                 The initial package fee covers Year 1 hardware, provisioning, and software setups. All active management licenses (Jamf MDM, Microsoft 365, Cloud platform access) <b>must be renewed annually</b> by parents to keep the device compliant with school systems.
             </p>
         </div>
@@ -376,7 +480,7 @@ if len(full_ipad_pkg_students) > 0:
 st.divider()
 
 # ---------------------------------------------------------
-# 6. PDF GENERATION BUILDER
+# 6. PDF GENERATION BUILDER WITH HORIZONTAL FORMATTING
 # ---------------------------------------------------------
 def create_pdf_bytes():
     try:
@@ -386,7 +490,7 @@ def create_pdf_bytes():
             pagesize=letter, 
             rightMargin=25, 
             leftMargin=25, 
-            topMargin=125, 
+            topMargin=120, 
             bottomMargin=75
         )
         
@@ -417,41 +521,50 @@ def create_pdf_bytes():
         elements.append(Paragraph(f"<b>Issue Date:</b> {issue_date.strftime('%d %b %Y')} &nbsp;&nbsp;|&nbsp;&nbsp; <b>Discount Valid Until:</b> {discount_expiry_date.strftime('%d %b %Y')} &nbsp;&nbsp;|&nbsp;&nbsp; <b>Quote Expiry:</b> {quote_expiry_date.strftime('%d %b %Y')}", meta_style))
         elements.append(Spacer(1, 10))
 
-        # Clear PDF Header Table (No Certificate Fee Column)
-        table_data = [["Student Name", "Status", "Grade", "Base Tuition", "Disc %", "Disc Amt", "Books", "iPad", "Bus", "Total (SAR)"]]
-        for s in student_summaries:
-            table_data.append([
-                str(s["Student Name"]), 
-                str(s["Student Status"]),
-                str(s["Grade"]), 
-                f"{s['Base Tuition']:,.0f}", 
-                str(s["Discount %"]),
-                f"-{s['Discount Amt']:,.0f}", 
-                f"{s['Mandatory Books']:,.0f}",
-                f"{s['iPad Fee']:,.0f}",
-                f"{s['Bus Fee']:,.0f}",
-                f"{s['Total Fee (SAR)']:,.2f}"
-            ])
-        
-        # Column width allocation (562pt printable area)
-        pdf_table = Table(table_data, colWidths=[85, 70, 45, 55, 38, 52, 45, 40, 40, 92])
+        # PDF Horizontal Table Formatting
+        pdf_table_headers = ["Fee Component"] + [s["Student Name"] for s in student_summaries]
+        pdf_table_data = [pdf_table_headers]
+
+        for idx, row_name in enumerate(metrics_labels):
+            row_data = [row_name]
+            for s in student_summaries:
+                if idx == 0: row_data.append(s["Student Status"])
+                elif idx == 1: row_data.append(s["Grade"])
+                elif idx == 2: row_data.append(f"{s['Base Tuition']:,.0f}")
+                elif idx == 3: row_data.append(s["Discount %"])
+                elif idx == 4: row_data.append(f"-{s['Discount Amt']:,.0f}")
+                elif idx == 5: row_data.append(f"+{s['VAT']:,.0f}")
+                elif idx == 6: row_data.append(f"{s['Mandatory Books']:,.0f}")
+                elif idx == 7: row_data.append(f"{s['iPad Fee']:,.0f}")
+                elif idx == 8: row_data.append(f"{s['Bus Fee']:,.0f}")
+                elif idx == 9: row_data.append(f"{s['Total Fee (SAR)']:,.2f}")
+            pdf_table_data.append(row_data)
+
+        num_cols = len(pdf_table_headers)
+        first_col_w = 172
+        rem_col_w = (562 - first_col_w) / max(1, num_cols - 1)
+        col_widths = [first_col_w] + [rem_col_w] * (num_cols - 1)
+
+        pdf_table = Table(pdf_table_data, colWidths=col_widths)
         pdf_table.setStyle(TableStyle([
             ('BACKGROUND', (0,0), (-1,0), colors.HexColor('#0B2545')),
             ('TEXTCOLOR', (0,0), (-1,0), colors.white),
             ('ALIGN', (0,0), (-1,-1), 'CENTER'),
+            ('ALIGN', (0,0), (0,-1), 'LEFT'),
             ('VALIGN', (0,0), (-1,-1), 'MIDDLE'),
             ('GRID', (0,0), (-1,-1), 0.5, colors.HexColor('#CBD5E1')),
             ('FONTNAME', (0,0), (-1,0), 'Helvetica-Bold'),
+            ('FONTNAME', (0,1), (0,-1), 'Helvetica-Bold'),
             ('FONTSIZE', (0,0), (-1,-1), 8),
-            ('BOTTOMPADDING', (0,0), (-1,-1), 5),
-            ('TOPPADDING', (0,0), (-1,-1), 5),
+            ('BOTTOMPADDING', (0,0), (-1,-1), 4),
+            ('TOPPADDING', (0,0), (-1,-1), 4),
         ]))
         elements.append(pdf_table)
         elements.append(Spacer(1, 10))
         
         summary_text = f"""
         <b>Grand Total Quote:</b> {family_total_quote:,.2f} SAR<br/>
-        <font color='#475569'>Term 1 Installment: {family_first_payment:,.2f} SAR &nbsp;|&nbsp; Term 2 Installment: {family_second_payment:,.2f} SAR</font>
+        <font color='#475569'>Term 1 Payment: {family_first_payment:,.2f} SAR &nbsp;|&nbsp; Term 2 Payment: {family_second_payment:,.2f} SAR</font>
         """
         elements.append(Paragraph(summary_text, ParagraphStyle(
             'SummaryBox',
@@ -462,10 +575,10 @@ def create_pdf_bytes():
             textColor=colors.HexColor('#0B2545')
         )))
 
-        # iPad Terms Note on PDF
+        # iPad Terms Box in PDF
         if len(full_ipad_pkg_students) > 0:
-            elements.append(Spacer(1, 8))
-            ipad_pdf_text = f"<b>iPad Package Specs & Terms:</b> Included for ({', '.join(full_ipad_pkg_students)}). Includes iPad A16 128GB, Cover, Stylus, AppleCare+ Enterprise, Jamf MDM, Microsoft 365, and Apple Managed Services. <i>*SAR 2,800 rate valid on spot payment (SAR 3,000 on 12-month installment). Software management licenses require annual renewal.</i>"
+            elements.append(Spacer(1, 6))
+            ipad_pdf_text = f"<b>iPad Package Specs & Terms:</b> Included for ({', '.join(full_ipad_pkg_students)}). Package includes iPad A16 128GB, Cover, Stylus, AppleCare+ Enterprise, Jamf MDM, Microsoft 365, and Apple Managed Services. <i>*SAR 2,800 rate valid on spot payment (SAR 3,000 on 12-month installment). Software management licenses require annual renewal.</i>"
             elements.append(Paragraph(ipad_pdf_text, ParagraphStyle(
                 'IPadBox',
                 parent=styles['Normal'],
