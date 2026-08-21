@@ -4,3 +4,4 @@ openpyxl
 pypdf
 reportlab
 requests
+streamlit-oauth
