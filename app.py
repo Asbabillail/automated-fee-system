@@ -11,7 +11,7 @@ from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from reportlab.lib import colors
 
 # ---------------------------------------------------------
-# 1. PAGE & FORCED DARK THEME CSS CONFIGURATION
+# 1. PAGE & BRANDED DARK THEME CONFIGURATION
 # ---------------------------------------------------------
 st.set_page_config(
     page_title="Yenepoya Admission & Fee Engine",
@@ -26,53 +26,20 @@ try:
 except Exception:
     current_ksa_date = datetime.now().date()
 
-# Comprehensive CSS Override to force dark mode elements regardless of OS/Browser Theme
+# Dark Tech Theme Styling
 st.markdown("""
     <style>
-    /* Force Root Dark Background */
-    html, body, [data-testid="stAppViewContainer"], .stApp {
+    .stApp {
         background-color: #0F172A !important;
         color: #F8FAFC !important;
     }
-    
-    /* Sidebar Dark Styling */
     section[data-testid="stSidebar"] {
         background-color: #1E293B !important;
-        border-right: 1px solid #334155 !important;
+        border-right: 1px solid #334155;
     }
     section[data-testid="stSidebar"] * {
         color: #F8FAFC !important;
     }
-
-    /* Override Input Fields, Selectboxes, & Number Inputs */
-    div[data-baseweb="input"], 
-    div[data-baseweb="select"] > div, 
-    input, 
-    select, 
-    textarea {
-        background-color: #1E293B !important;
-        color: #FFFFFF !important;
-        border-color: #475569 !important;
-    }
-
-    /* Override Labels and Field Captions */
-    label, p, span, div {
-        color: #F8FAFC !important;
-    }
-
-    /* Specific Dropdown Menu Overlay List Options */
-    ul[data-baseweb="menu"] {
-        background-color: #1E293B !important;
-    }
-    li[data-baseweb="option"] {
-        background-color: #1E293B !important;
-        color: #FFFFFF !important;
-    }
-    li[data-baseweb="option"]:hover {
-        background-color: #334155 !important;
-    }
-
-    /* Main Banner Header */
     .main-header {
         background: linear-gradient(135deg, #1E293B 0%, #0F172A 100%);
         border: 1px solid #38BDF8;
@@ -94,8 +61,6 @@ st.markdown("""
         font-size: 1.05rem;
         font-weight: 600;
     }
-
-    /* Quote Metrics Container */
     .quote-box {
         background-color: #1E293B;
         border: 1px solid #334155;
@@ -107,12 +72,6 @@ st.markdown("""
     }
     [data-testid="stMetricValue"] {
         color: #38BDF8 !important;
-    }
-
-    /* Table Specific Dark Overrides */
-    div[data-testid="stTable"] table {
-        color: #F8FAFC !important;
-        background-color: #1E293B !important;
     }
     </style>
 """, unsafe_allow_html=True)
@@ -138,6 +97,7 @@ with col_header_right:
 # ---------------------------------------------------------
 # 2. MASTER DATA MAPPINGS
 # ---------------------------------------------------------
+# KG: 500 | Grade 1-3: 1200 | Grade 4 and above: 1500
 books_fee_map = {
     "KG. 1": 500, "KG. 2": 500, "KG. 3": 500,
     "Grade 1": 1200, "Grade 2": 1200, "Grade 3": 1200,
@@ -416,7 +376,7 @@ if len(full_ipad_pkg_students) > 0:
 st.divider()
 
 # ---------------------------------------------------------
-# 6. PDF GENERATOR
+# 6. EXACT MATCH PDF GENERATOR
 # ---------------------------------------------------------
 def create_pdf_bytes():
     try:
@@ -433,6 +393,7 @@ def create_pdf_bytes():
         elements = []
         styles = getSampleStyleSheet()
 
+        # --- Typography Styles ---
         section_heading_style = ParagraphStyle(
             'SectionHeader',
             parent=styles['Heading2'],
@@ -487,6 +448,9 @@ def create_pdf_bytes():
             alignment=0
         )
 
+        # -----------------------------------------------------
+        # 1. HEADER METADATA & STYLED BADGES
+        # -----------------------------------------------------
         elements.append(Paragraph(f"<b>Parent / Guardian Name:</b> {parent_name} &nbsp;&nbsp;|&nbsp;&nbsp; <b>Tax Category:</b> {nationality}", meta_header_style))
         elements.append(Spacer(1, 6))
 
@@ -509,6 +473,9 @@ def create_pdf_bytes():
         elements.append(badge_table)
         elements.append(Spacer(1, 8))
 
+        # -----------------------------------------------------
+        # 2. TABLE 1: OFFICIAL FAMILY QUOTATION BREAKDOWN
+        # -----------------------------------------------------
         elements.append(Paragraph("📊 Official Family Quotation Breakdown", section_heading_style))
         
         t1_headers = [Paragraph("Fee Component", cell_body_left)] + [Paragraph(s["Student Name"], cell_hdr_style) for s in student_summaries]
@@ -548,6 +515,9 @@ def create_pdf_bytes():
         elements.append(pdf_t1)
         elements.append(Spacer(1, 10))
 
+        # -----------------------------------------------------
+        # 3. TABLE 2: STUDENT TOTALS SUMMARY TABLE
+        # -----------------------------------------------------
         elements.append(Paragraph("📋 Student Totals Summary Table", section_heading_style))
         
         if is_non_saudi:
@@ -595,6 +565,9 @@ def create_pdf_bytes():
         elements.append(pdf_t2)
         elements.append(Spacer(1, 8))
 
+        # -----------------------------------------------------
+        # 4. GRAND TOTAL SUMMARY BANNER
+        # -----------------------------------------------------
         summary_p_style = ParagraphStyle(
             'GrandTotalBanner',
             parent=styles['Normal'],
@@ -616,6 +589,9 @@ def create_pdf_bytes():
         ]))
         elements.append(banner_table)
 
+        # -----------------------------------------------------
+        # 5. FULL STUDENT IPAD PACKAGE DETAILS
+        # -----------------------------------------------------
         if len(full_ipad_pkg_students) > 0:
             elements.append(Spacer(1, 8))
 
@@ -683,6 +659,9 @@ def create_pdf_bytes():
             ]))
             elements.append(r_table)
 
+        # -----------------------------------------------------
+        # 6. SIGNATURE CANVAS DRAWING (POSITIONED ABOVE FOOTER)
+        # -----------------------------------------------------
         def draw_bottom_signatures(canvas, doc):
             canvas.saveState()
             
@@ -716,6 +695,7 @@ def create_pdf_bytes():
             sig_table.drawOn(canvas, 25, 120)
             canvas.restoreState()
 
+        # Build PDF
         doc.build(elements, onFirstPage=draw_bottom_signatures, onLaterPages=draw_bottom_signatures)
         content_buffer.seek(0)
 
