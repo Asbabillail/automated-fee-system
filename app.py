@@ -9,7 +9,51 @@ from reportlab.lib.pagesizes import letter
 from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from reportlab.lib import colors
+import streamlit as st
+from streamlit_oauth import OAuth2Component
 
+# ---------------------------------------------------------
+# AZURE AD OAUTH CONFIGURATION (Yenepoya School Portal)
+# ---------------------------------------------------------
+CLIENT_ID = st.secrets["azure"]["CLIENT_ID"]
+CLIENT_SECRET = st.secrets["azure"]["CLIENT_SECRET"]
+TENANT_ID = st.secrets["azure"]["TENANT_ID"]
+
+AUTHORIZE_URL = f"https://login.microsoftonline.com/{TENANT_ID}/oauth2/v2.0/authorize"
+TOKEN_URL = f"https://login.microsoftonline.com/{TENANT_ID}/oauth2/v2.0/token"
+REVOKE_URL = f"https://login.microsoftonline.com/{TENANT_ID}/oauth2/v2.0/logout"
+
+oauth2 = OAuth2Component(CLIENT_ID, CLIENT_SECRET, AUTHORIZE_URL, TOKEN_URL, TOKEN_URL, REVOKE_URL)
+
+# Check active session token
+if "auth" not in st.session_state:
+    st.title("🔒 Yenepoya International School - Portal Access")
+    st.info("Please sign in with your official @yenschoolksa.com account to continue.")
+    
+    result = oauth2.authorize_button(
+        name="Sign in with Microsoft 365",
+        redirect_uri="https://yenepoya-fee-calculator.streamlit.app/",
+        scope="openid profile email",
+    )
+    
+    if result and "token" in result:
+        st.session_state["auth"] = result["token"]
+        st.rerun()
+    else:
+        st.stop()  # Halt execution until authenticated
+
+# Extract user profile information securely from token
+user_info = st.session_state["auth"].get("id_token", {})
+active_full_name = user_info.get("name", "Staff Member")
+active_email = user_info.get("preferred_username", "user@yenschoolksa.com")
+active_first_name = active_full_name.split()[0] if active_full_name else "Staff"
+
+# Sidebar Display & Sign Out Control
+st.sidebar.markdown(f"**Logged in as:**\n`{active_full_name}`")
+if st.sidebar.button("🔒 Sign Out"):
+    del st.session_state["auth"]
+    st.rerun()
+    
 # ---------------------------------------------------------
 # 1. PAGE & BRANDED DARK THEME CONFIGURATION
 # ---------------------------------------------------------
