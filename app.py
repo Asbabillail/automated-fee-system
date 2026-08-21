@@ -70,6 +70,20 @@ st.markdown("""
         box-shadow: 0 4px 6px rgba(0,0,0,0.3);
         margin-bottom: 20px;
     }
+    .ipad-hero-card {
+        background: linear-gradient(135deg, #1E293B 0%, #0F172A 100%);
+        border: 2px solid #38BDF8;
+        border-radius: 12px;
+        padding: 25px;
+        margin-top: 20px;
+        margin-bottom: 25px;
+        box-shadow: 0 6px 20px rgba(56, 189, 248, 0.2);
+    }
+    .ipad-hero-card h2 {
+        color: #38BDF8 !important;
+        margin-top: 0;
+        font-size: 1.6rem;
+    }
     [data-testid="stMetricValue"] {
         color: #38BDF8 !important;
     }
@@ -102,12 +116,12 @@ with col_header_right:
     st.markdown("""
         <div class="main-header">
             <h1>YENEPOYA INTERNATIONAL SCHOOL</h1>
-            <p>A Next Generation of Learning — Fee Quotation Portal</p>
+            <p>A Next Generation of Learning — Official Parent Fee Quotation Portal</p>
         </div>
     """, unsafe_allow_html=True)
 
 # ---------------------------------------------------------
-# 2. MASTER DATA MAPPINGS (GRADES KG1 - GRADE 12)
+# 2. MASTER DATA MAPPINGS (KG1 - GRADE 12)
 # ---------------------------------------------------------
 books_fee_map = {
     "KG. 1": 500, "KG. 2": 500, "KG. 3": 500,
@@ -132,8 +146,6 @@ old_tuition_map = {
     "Grade 7": 31500, "Grade 8": 32500, "Grade 9": 32500,
     "Grade 10": 34500, "Grade 11": 36500, "Grade 12": 38500
 }
-
-cert_fee_map = {"Grade 7": 300, "Grade 9": 400, "Grade 10": 500, "Grade 11": 500, "Grade 12": 600}
 
 # ---------------------------------------------------------
 # 3. SIDEBAR CONTROLS & VALIDITY SETTINGS
@@ -178,19 +190,19 @@ for i, tab in enumerate(tabs):
         c1, c2, c3 = st.columns(3)
         
         with c1:
-            student_type = st.selectbox("Student Status", ["New Student", "Returning Student"], key=f"status_{i}")
+            student_type = st.selectbox("Student Type / Status", ["New Student", "Returning Student"], key=f"status_{i}")
             grade = st.selectbox("Select Grade", list(new_tuition_map.keys()), key=f"grade_{i}")
             
         with c2:
             default_discount = 35 + (5 if i > 0 else 0)
             discount_pct = st.slider("Discount (%)", 0, 50, min(default_discount, 50), 5, key=f"disc_{i}")
             
-            # Expanded iPad Dropdown Menu
+            # iPad Dropdown Menu
             ipad_option = st.selectbox(
-                "iPad / Migration Option",
+                "iPad Package / Migration",
                 [
                     "None",
-                    "SAR 2,800 - Full Package (Spot Payment)",
+                    "SAR 2,800 - Full iPad Package (Spot Payment Offer)",
                     "SAR 600 - Migration Only (License & Config)",
                     "SAR 700 - Migration with Pen",
                     "SAR 800 - Migration with Pen & Cover"
@@ -199,7 +211,7 @@ for i, tab in enumerate(tabs):
             )
             
         with c3:
-            # Dynamic Transportation Selector
+            # Bus Transport Options
             bus_options_list = [
                 "None",
                 "One Side (1 Term) - SAR 1,500",
@@ -215,7 +227,7 @@ for i, tab in enumerate(tabs):
                 
             bus_option = st.selectbox("Bus Transportation", bus_options_list, key=f"bus_{i}")
 
-        # Fee Calculations
+        # Tuition Calculation
         if student_type == "Returning Student":
             base_tuition = old_tuition_map.get(grade, 28500)
         else:
@@ -228,9 +240,8 @@ for i, tab in enumerate(tabs):
 
         # Mandatory Book Fee
         books_fee = books_fee_map.get(grade, 1200)
-        cert_fee = cert_fee_map.get(grade, 0)
         
-        # iPad Fee Parse
+        # Parse iPad Selection
         ipad_fee = 0
         if "2,800" in ipad_option:
             ipad_fee = 2800
@@ -242,7 +253,7 @@ for i, tab in enumerate(tabs):
         elif "800" in ipad_option:
             ipad_fee = 800
 
-        # Bus Fee Parse
+        # Parse Bus Selection
         bus_fee = 0
         if "1,500" in bus_option:
             bus_fee = 1500
@@ -257,8 +268,8 @@ for i, tab in enumerate(tabs):
         elif "6,500" in bus_option:
             bus_fee = 6500
 
-        total_student_fee = tuition_with_vat + books_fee + cert_fee + ipad_fee + bus_fee
-        first_pay = (tuition_with_vat / 2) + books_fee + cert_fee
+        total_student_fee = tuition_with_vat + books_fee + ipad_fee + bus_fee
+        first_pay = (tuition_with_vat / 2) + books_fee
         second_pay = (tuition_with_vat / 2) + ipad_fee + bus_fee
 
         family_total_quote += total_student_fee
@@ -267,17 +278,16 @@ for i, tab in enumerate(tabs):
 
         student_summaries.append({
             "Student Name": student_name_input,
-            "Status": student_type,
+            "Student Status": student_type,
             "Grade": grade,
             "Base Tuition": base_tuition,
             "Discount %": f"{discount_pct}%",
             "Discount Amt": discount_amount,
             "VAT": vat_amount,
             "Mandatory Books": books_fee,
-            "Cert Fee": cert_fee,
             "iPad Fee": ipad_fee,
             "Bus Fee": bus_fee,
-            "Total (SAR)": total_student_fee
+            "Total Fee (SAR)": total_student_fee
         })
 
         st.markdown('<div class="quote-box">', unsafe_allow_html=True)
@@ -293,7 +303,7 @@ for i, tab in enumerate(tabs):
 # 5. CONSOLIDATED SUMMARY & VALIDITY DISPLAY
 # ---------------------------------------------------------
 st.divider()
-st.subheader("📊 Official Family Quotation Summary")
+st.subheader("📊 Clear Family Fee Breakdown")
 
 # Display Validity Badges
 val_col1, val_col2, val_col3 = st.columns(3)
@@ -307,41 +317,66 @@ st.dataframe(df_family.style.format({
     "Discount Amt": "-{:,.2f}",
     "VAT": "+{:,.2f}",
     "Mandatory Books": "{:,.2f}",
-    "Cert Fee": "{:,.2f}",
     "iPad Fee": "{:,.2f}",
     "Bus Fee": "{:,.2f}",
-    "Total (SAR)": "{:,.2f}"
+    "Total Fee (SAR)": "{:,.2f}"
 }), use_container_width=True)
 
 st.markdown(f"### **Grand Total Family Quote: `{family_total_quote:,.2f} SAR`**")
 
 col_p1, col_p2 = st.columns(2)
-col_p1.info(f"**Total First Installment:** `{family_first_payment:,.2f} SAR`")
-col_p2.success(f"**Total Second Installment:** `{family_second_payment:,.2f} SAR`")
+col_p1.info(f"**Term 1 Payment Required:** `{family_first_payment:,.2f} SAR`")
+col_p2.success(f"**Term 2 Payment Required:** `{family_second_payment:,.2f} SAR`")
 
-# Render iPad Specifications, Installment Notice & Renewal Warning
+# ---------------------------------------------------------
+# LARGE & ATTRACTIVE IPAD SPECIFICATION POP-OUT BOX
+# ---------------------------------------------------------
 if len(full_ipad_pkg_students) > 0:
-    st.divider()
-    st.subheader("📱 Full Student iPad Package Specifications & Compliance")
-    st.write(f"**Selected for:** {', '.join(full_ipad_pkg_students)}")
-    
-    st.markdown("""
-    * **Hardware & Accessories:** New iPad A16 (128GB), Rugged Protective Cover, and School-Approved Stylus.
-    * **Security & Coverage:** AppleCare+ for Enterprise (36 Months coverage).
-    * **Software & Managed Accounts:** Jamf School Management (MDM), Microsoft School Account (1TB Cloud), 200GB iCloud & Apple Managed Account.
-    * **Technical Services:** Full device configuration, security profiles, and school app suite setup.
-    
-    > 💳 **PAYMENT TERMS NOTICE:**  
-    > *The **SAR 2,800** price is valid **ONLY for instant/spot payment** at registration. If paying via C-Pay 12-month installment, total price is **SAR 3,000** (12 monthly payments of SAR 250).*
-    
-    > ⚠️ **IMPORTANT ANNUAL RENEWAL NOTICE:**  
-    > *The initial package fee covers Year 1 device provisioning and software licensing. All software management licenses (Jamf MDM, Microsoft 365, Cloud services) **must be renewed annually** by the parent/guardian to maintain device network access.*
-    """)
+    st.markdown(f"""
+    <div class="ipad-hero-card">
+        <h2>📱 Full Student iPad Package Details</h2>
+        <p style="font-size: 1.1rem; color: #CBD5E1;"><b>Selected for Student(s):</b> <span style="color: #38BDF8; font-weight: bold;">{', '.join(full_ipad_pkg_students)}</span></p>
+        <hr style="border-color: #334155;">
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; font-size: 1.05rem;">
+            <div>
+                <p><b>📦 Included Hardware & Protection:</b></p>
+                <ul>
+                    <li><b>Brand New iPad A16 (128GB Storage)</b></li>
+                    <li><b>Rugged Heavy-Duty Protective Case</b></li>
+                    <li><b>School-Approved High-Precision Stylus Pen</b></li>
+                    <li><b>AppleCare+ Enterprise Warranty</b> (36 Months full coverage)</li>
+                </ul>
+            </div>
+            <div>
+                <p><b>⚙️ Digital Ecosystem & Management:</b></p>
+                <ul>
+                    <li><b>Jamf School Management System</b> (MDM)</li>
+                    <li><b>Microsoft 365 Education Account</b> (1TB Cloud storage)</li>
+                    <li><b>Apple Managed Educational ID</b> & 200GB iCloud</li>
+                    <li><b>Pre-configured Security Profiles & Learning Apps</b></li>
+                </ul>
+            </div>
+        </div>
+        <hr style="border-color: #334155;">
+        <div style="background-color: #1E293B; padding: 15px; border-radius: 8px; border-left: 4px solid #F59E0B; margin-top: 10px;">
+            <p style="margin: 0; color: #F59E0B; font-weight: bold; font-size: 1rem;">💳 Payment Terms Policy:</p>
+            <p style="margin: 5px 0 0 0; color: #CBD5E1; font-size: 0.95rem;">
+                The discounted rate of <b>SAR 2,800</b> is an <b>instant/spot payment offer</b> at the time of registration. If choosing the <b>C-Pay 12-Month Installment Plan</b>, the total price is <b>SAR 3,000</b> (12 monthly payments of SAR 250).
+            </p>
+        </div>
+        <div style="background-color: #1E293B; padding: 15px; border-radius: 8px; border-left: 4px solid #EF4444; margin-top: 10px;">
+            <p style="margin: 0; color: #EF4444; font-weight: bold; font-size: 1rem;">⚠️ Annual Software License Renewal Notice:</p>
+            <p style="margin: 5px 0 0 0; color: #CBD5E1; font-size: 0.95rem;">
+                The initial package fee covers Year 1 hardware, provisioning, and software setups. All active management licenses (Jamf MDM, Microsoft 365, Cloud platform access) <b>must be renewed annually</b> by parents to keep the device compliant with school systems.
+            </p>
+        </div>
+    </div>
+    """, unsafe_allow_html=True)
 
 st.divider()
 
 # ---------------------------------------------------------
-# 6. PDF GENERATION BUILDER WITH EXPANDED COLUMNS
+# 6. PDF GENERATION BUILDER
 # ---------------------------------------------------------
 def create_pdf_bytes():
     try:
@@ -382,24 +417,24 @@ def create_pdf_bytes():
         elements.append(Paragraph(f"<b>Issue Date:</b> {issue_date.strftime('%d %b %Y')} &nbsp;&nbsp;|&nbsp;&nbsp; <b>Discount Valid Until:</b> {discount_expiry_date.strftime('%d %b %Y')} &nbsp;&nbsp;|&nbsp;&nbsp; <b>Quote Expiry:</b> {quote_expiry_date.strftime('%d %b %Y')}", meta_style))
         elements.append(Spacer(1, 10))
 
-        # Explicit Multi-Column PDF Header Table
-        table_data = [["Student Name", "Grade", "Base Tuition", "Disc %", "Disc Amt", "Books", "Cert", "iPad", "Bus", "Total (SAR)"]]
+        # Clear PDF Header Table (No Certificate Fee Column)
+        table_data = [["Student Name", "Status", "Grade", "Base Tuition", "Disc %", "Disc Amt", "Books", "iPad", "Bus", "Total (SAR)"]]
         for s in student_summaries:
             table_data.append([
                 str(s["Student Name"]), 
+                str(s["Student Status"]),
                 str(s["Grade"]), 
                 f"{s['Base Tuition']:,.0f}", 
                 str(s["Discount %"]),
                 f"-{s['Discount Amt']:,.0f}", 
                 f"{s['Mandatory Books']:,.0f}",
-                f"{s['Cert Fee']:,.0f}",
                 f"{s['iPad Fee']:,.0f}",
                 f"{s['Bus Fee']:,.0f}",
-                f"{s['Total (SAR)']:,.2f}"
+                f"{s['Total Fee (SAR)']:,.2f}"
             ])
         
-        # Exact column width alignment (562pt total letter printable width)
-        pdf_table = Table(table_data, colWidths=[90, 45, 60, 40, 55, 45, 35, 40, 40, 112])
+        # Column width allocation (562pt printable area)
+        pdf_table = Table(table_data, colWidths=[85, 70, 45, 55, 38, 52, 45, 40, 40, 92])
         pdf_table.setStyle(TableStyle([
             ('BACKGROUND', (0,0), (-1,0), colors.HexColor('#0B2545')),
             ('TEXTCOLOR', (0,0), (-1,0), colors.white),
@@ -416,7 +451,7 @@ def create_pdf_bytes():
         
         summary_text = f"""
         <b>Grand Total Quote:</b> {family_total_quote:,.2f} SAR<br/>
-        <font color='#475569'>First Installment: {family_first_payment:,.2f} SAR &nbsp;|&nbsp; Second Installment: {family_second_payment:,.2f} SAR</font>
+        <font color='#475569'>Term 1 Installment: {family_first_payment:,.2f} SAR &nbsp;|&nbsp; Term 2 Installment: {family_second_payment:,.2f} SAR</font>
         """
         elements.append(Paragraph(summary_text, ParagraphStyle(
             'SummaryBox',
@@ -427,10 +462,10 @@ def create_pdf_bytes():
             textColor=colors.HexColor('#0B2545')
         )))
 
-        # Conditional iPad Specification & Payment Note in PDF
+        # iPad Terms Note on PDF
         if len(full_ipad_pkg_students) > 0:
             elements.append(Spacer(1, 8))
-            ipad_pdf_text = f"<b>iPad Package Specs & Terms:</b> Included for ({', '.join(full_ipad_pkg_students)}). Package includes iPad A16 128GB, Cover, Stylus, AppleCare+ Enterprise, Jamf MDM, Microsoft 365, and Apple Managed Services. <i>*SAR 2,800 offer valid only on instant payment (SAR 3,000 on 12-month installment). Software management licenses must be renewed annually.</i>"
+            ipad_pdf_text = f"<b>iPad Package Specs & Terms:</b> Included for ({', '.join(full_ipad_pkg_students)}). Includes iPad A16 128GB, Cover, Stylus, AppleCare+ Enterprise, Jamf MDM, Microsoft 365, and Apple Managed Services. <i>*SAR 2,800 rate valid on spot payment (SAR 3,000 on 12-month installment). Software management licenses require annual renewal.</i>"
             elements.append(Paragraph(ipad_pdf_text, ParagraphStyle(
                 'IPadBox',
                 parent=styles['Normal'],
