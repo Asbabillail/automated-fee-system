@@ -6,7 +6,7 @@ import pypdf
 from datetime import datetime, timedelta
 import zoneinfo
 from reportlab.lib.pagesizes import letter
-from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle, HRFlowable
+from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from reportlab.lib import colors
 
@@ -282,7 +282,7 @@ metrics_labels = [
     "Base Tuition (SAR)",
     "Discount Percentage",
     "Discount Amount (SAR)",
-    "VAT Amount (SAR)" if is_non_saudi else "VAT Amount (SAR)",
+    "VAT Amount (SAR)",
     "Mandatory Books Fee (SAR)",
     "iPad Package / Migration (SAR)",
     "Bus Transportation (SAR)",
@@ -375,7 +375,7 @@ if len(full_ipad_pkg_students) > 0:
 st.divider()
 
 # ---------------------------------------------------------
-# 6. EXACT MATCH PDF GENERATOR (ENHANCED THEME & TYPOGRAPHY)
+# 6. EXACT MATCH PDF GENERATOR (OPTIMIZED PAGE 1 LAYOUT)
 # ---------------------------------------------------------
 def create_pdf_bytes():
     try:
@@ -385,8 +385,8 @@ def create_pdf_bytes():
             pagesize=letter, 
             rightMargin=25, 
             leftMargin=25, 
-            topMargin=110, 
-            bottomMargin=50
+            topMargin=75,    # Reduced gap below top letterhead
+            bottomMargin=35
         )
         
         elements = []
@@ -397,32 +397,32 @@ def create_pdf_bytes():
             'SectionHeader',
             parent=styles['Heading2'],
             fontName='Helvetica-Bold',
-            fontSize=12,
-            leading=15,
+            fontSize=10,
+            leading=12,
             textColor=colors.HexColor('#0B2545'),
-            spaceBefore=10,
-            spaceAfter=6
+            spaceBefore=4,
+            spaceAfter=3
         )
         
         meta_header_style = ParagraphStyle(
             'MetaHeader',
             parent=styles['Normal'],
             fontName='Helvetica-Bold',
-            fontSize=9.5,
-            leading=13,
+            fontSize=8.5,
+            leading=11,
             textColor=colors.HexColor('#0B2545')
         )
 
-        badge_text_blue = ParagraphStyle('BadgeBlue', parent=styles['Normal'], fontName='Helvetica-Bold', fontSize=8.5, leading=11, textColor=colors.HexColor('#1E40AF'), alignment=1)
-        badge_text_olive = ParagraphStyle('BadgeOlive', parent=styles['Normal'], fontName='Helvetica-Bold', fontSize=8.5, leading=11, textColor=colors.HexColor('#854D0E'), alignment=1)
-        badge_text_red = ParagraphStyle('BadgeRed', parent=styles['Normal'], fontName='Helvetica-Bold', fontSize=8.5, leading=11, textColor=colors.HexColor('#991B1B'), alignment=1)
+        badge_text_blue = ParagraphStyle('BadgeBlue', parent=styles['Normal'], fontName='Helvetica-Bold', fontSize=7.5, leading=9.5, textColor=colors.HexColor('#1E40AF'), alignment=1)
+        badge_text_olive = ParagraphStyle('BadgeOlive', parent=styles['Normal'], fontName='Helvetica-Bold', fontSize=7.5, leading=9.5, textColor=colors.HexColor('#854D0E'), alignment=1)
+        badge_text_red = ParagraphStyle('BadgeRed', parent=styles['Normal'], fontName='Helvetica-Bold', fontSize=7.5, leading=9.5, textColor=colors.HexColor('#991B1B'), alignment=1)
 
         cell_hdr_style = ParagraphStyle(
             'TableHdr',
             parent=styles['Normal'],
             fontName='Helvetica-Bold',
-            fontSize=8.5,
-            leading=11,
+            fontSize=7.5,
+            leading=9.5,
             textColor=colors.white,
             alignment=1
         )
@@ -431,8 +431,8 @@ def create_pdf_bytes():
             'TableBody',
             parent=styles['Normal'],
             fontName='Helvetica',
-            fontSize=8.5,
-            leading=11,
+            fontSize=7.5,
+            leading=9.5,
             textColor=colors.HexColor('#1E293B'),
             alignment=1
         )
@@ -441,8 +441,8 @@ def create_pdf_bytes():
             'TableBodyLeft',
             parent=styles['Normal'],
             fontName='Helvetica-Bold',
-            fontSize=8.5,
-            leading=11,
+            fontSize=7.5,
+            leading=9.5,
             textColor=colors.HexColor('#0B2545'),
             alignment=0
         )
@@ -451,7 +451,7 @@ def create_pdf_bytes():
         # 1. HEADER METADATA & STYLED BADGES
         # -----------------------------------------------------
         elements.append(Paragraph(f"<b>Parent / Guardian Name:</b> {parent_name} &nbsp;&nbsp;|&nbsp;&nbsp; <b>Tax Category:</b> {nationality}", meta_header_style))
-        elements.append(Spacer(1, 6))
+        elements.append(Spacer(1, 3))
 
         # Date Meta Badges Row
         badge_col1 = [Paragraph(f"📅 Issue Date (KSA):<br/><b>{issue_date.strftime('%d %b %Y')}</b>", badge_text_blue)]
@@ -467,11 +467,11 @@ def create_pdf_bytes():
             ('BOX', (0,0), (0,0), 0.5, colors.HexColor('#93C5FD')),
             ('BOX', (1,0), (1,0), 0.5, colors.HexColor('#FDE047')),
             ('BOX', (2,0), (2,0), 0.5, colors.HexColor('#FCA5A5')),
-            ('TOPPADDING', (0,0), (-1,-1), 5),
-            ('BOTTOMPADDING', (0,0), (-1,-1), 5),
+            ('TOPPADDING', (0,0), (-1,-1), 3),
+            ('BOTTOMPADDING', (0,0), (-1,-1), 3),
         ]))
         elements.append(badge_table)
-        elements.append(Spacer(1, 8))
+        elements.append(Spacer(1, 4))
 
         # -----------------------------------------------------
         # 2. TABLE 1: OFFICIAL FAMILY QUOTATION BREAKDOWN
@@ -498,7 +498,7 @@ def create_pdf_bytes():
             t1_data.append(row_cells)
 
         num_cols = len(t1_headers)
-        f_width = 160
+        f_width = 155
         r_width = (555 - f_width) / max(1, num_cols - 1)
         t1_col_widths = [f_width] + [r_width] * (num_cols - 1)
 
@@ -508,12 +508,12 @@ def create_pdf_bytes():
             ('ALIGN', (0,0), (-1,-1), 'CENTER'),
             ('VALIGN', (0,0), (-1,-1), 'MIDDLE'),
             ('GRID', (0,0), (-1,-1), 0.5, colors.HexColor('#CBD5E1')),
-            ('TOPPADDING', (0,0), (-1,-1), 4),
-            ('BOTTOMPADDING', (0,0), (-1,-1), 4),
+            ('TOPPADDING', (0,0), (-1,-1), 2.5),
+            ('BOTTOMPADDING', (0,0), (-1,-1), 2.5),
             ('BACKGROUND', (0,1), (-1,-1), colors.HexColor('#F8FAFC')),
         ]))
         elements.append(pdf_t1)
-        elements.append(Spacer(1, 10))
+        elements.append(Spacer(1, 4))
 
         # -----------------------------------------------------
         # 3. TABLE 2: STUDENT TOTALS SUMMARY TABLE
@@ -558,12 +558,12 @@ def create_pdf_bytes():
             ('ALIGN', (0,0), (-1,-1), 'CENTER'),
             ('VALIGN', (0,0), (-1,-1), 'MIDDLE'),
             ('GRID', (0,0), (-1,-1), 0.5, colors.HexColor('#CBD5E1')),
-            ('TOPPADDING', (0,0), (-1,-1), 4.5),
-            ('BOTTOMPADDING', (0,0), (-1,-1), 4.5),
+            ('TOPPADDING', (0,0), (-1,-1), 2.5),
+            ('BOTTOMPADDING', (0,0), (-1,-1), 2.5),
             ('BACKGROUND', (0,1), (-1,-1), colors.HexColor('#FFFFFF')),
         ]))
         elements.append(pdf_t2)
-        elements.append(Spacer(1, 8))
+        elements.append(Spacer(1, 4))
 
         # -----------------------------------------------------
         # 4. GRAND TOTAL & PAYMENT SUMMARY BANNER
@@ -572,8 +572,8 @@ def create_pdf_bytes():
             'GrandTotalBanner',
             parent=styles['Normal'],
             fontName='Helvetica-Bold',
-            fontSize=10,
-            leading=14,
+            fontSize=9,
+            leading=12,
             textColor=colors.HexColor('#0B2545'),
             alignment=1
         )
@@ -584,28 +584,26 @@ def create_pdf_bytes():
         banner_table.setStyle(TableStyle([
             ('BACKGROUND', (0,0), (-1,-1), colors.HexColor('#F0FDF4')),
             ('BOX', (0,0), (-1,-1), 1, colors.HexColor('#16A34A')),
-            ('TOPPADDING', (0,0), (-1,-1), 6),
-            ('BOTTOMPADDING', (0,0), (-1,-1), 6),
+            ('TOPPADDING', (0,0), (-1,-1), 4),
+            ('BOTTOMPADDING', (0,0), (-1,-1), 4),
         ]))
         elements.append(banner_table)
 
         # -----------------------------------------------------
-        # 5. FULL STUDENT IPAD PACKAGE CONTAINER CARD
+        # 5. FULL STUDENT IPAD PACKAGE DETAILS
         # -----------------------------------------------------
         if len(full_ipad_pkg_students) > 0:
-            elements.append(Spacer(1, 10))
+            elements.append(Spacer(1, 4))
 
-            ipad_card_elements = []
+            ipad_title_style = ParagraphStyle('IpadTitle', parent=styles['Normal'], fontName='Helvetica-Bold', fontSize=9.5, leading=12, textColor=colors.HexColor('#0B2545'))
+            ipad_sub_style = ParagraphStyle('IpadSub', parent=styles['Normal'], fontName='Helvetica', fontSize=7.5, leading=10, textColor=colors.HexColor('#334155'))
 
-            ipad_title_style = ParagraphStyle('IpadTitle', parent=styles['Normal'], fontName='Helvetica-Bold', fontSize=11, leading=14, textColor=colors.HexColor('#0B2545'))
-            ipad_sub_style = ParagraphStyle('IpadSub', parent=styles['Normal'], fontName='Helvetica', fontSize=8.5, leading=11, textColor=colors.HexColor('#334155'))
+            elements.append(Paragraph("📱 Full Student iPad Package Details", ipad_title_style))
+            elements.append(Paragraph(f"<b>Selected for Student(s):</b> <font color='#2563EB'>{', '.join(full_ipad_pkg_students)}</font>", ipad_sub_style))
+            elements.append(Spacer(1, 2))
 
-            ipad_card_elements.append(Paragraph("📱 Full Student iPad Package Details", ipad_title_style))
-            ipad_card_elements.append(Paragraph(f"<b>Selected for Student(s):</b> <font color='#2563EB'>{', '.join(full_ipad_pkg_students)}</font>", ipad_sub_style))
-            ipad_card_elements.append(Spacer(1, 6))
-
-            ipad_hdr_style = ParagraphStyle('IpadHdr', parent=styles['Normal'], fontName='Helvetica-Bold', fontSize=8.5, leading=11, textColor=colors.HexColor('#0B2545'))
-            ipad_item_style = ParagraphStyle('IpadItem', parent=styles['Normal'], fontName='Helvetica', fontSize=8, leading=11, textColor=colors.HexColor('#1E293B'))
+            ipad_hdr_style = ParagraphStyle('IpadHdr', parent=styles['Normal'], fontName='Helvetica-Bold', fontSize=7.5, leading=9.5, textColor=colors.HexColor('#0B2545'))
+            ipad_item_style = ParagraphStyle('IpadItem', parent=styles['Normal'], fontName='Helvetica', fontSize=7, leading=9, textColor=colors.HexColor('#1E293B'))
 
             col1_content = [
                 Paragraph("<b>📦 Included Hardware & Protection:</b>", ipad_hdr_style),
@@ -623,7 +621,7 @@ def create_pdf_bytes():
                 Paragraph("• Pre-configured Security Profiles & Learning Apps", ipad_item_style),
             ]
 
-            ipad_spec_table = Table([[col1_content, col2_content]], colWidths=[265, 265])
+            ipad_spec_table = Table([[col1_content, col2_content]], colWidths=[275, 280])
             ipad_spec_table.setStyle(TableStyle([
                 ('VALIGN', (0,0), (-1,-1), 'TOP'),
                 ('LEFTPADDING', (0,0), (-1,-1), 0),
@@ -631,49 +629,67 @@ def create_pdf_bytes():
                 ('TOPPADDING', (0,0), (-1,-1), 0),
                 ('BOTTOMPADDING', (0,0), (-1,-1), 0),
             ]))
-            ipad_card_elements.append(ipad_spec_table)
-            ipad_card_elements.append(Spacer(1, 6))
+            elements.append(ipad_spec_table)
+            elements.append(Spacer(1, 3))
 
-            # Payment Terms Box inside Card
-            policy_style = ParagraphStyle('PolicyBox', parent=styles['Normal'], fontName='Helvetica', fontSize=8, leading=11, textColor=colors.HexColor('#1E293B'))
+            policy_style = ParagraphStyle('PolicyBox', parent=styles['Normal'], fontName='Helvetica', fontSize=7, leading=9, textColor=colors.HexColor('#1E293B'))
             
-            p_terms = "<b>💳 Payment Terms Policy:</b> The discounted rate of <b>SAR 2,800</b> is an <b>instant/spot payment offer</b> at the time of registration. If choosing the <b>C-Pay 12-Month Installment Plan</b>, the total price is <b>SAR 3,000</b> (12 monthly payments of SAR 250)."
-            p_table = Table([[Paragraph(p_terms, policy_style)]], colWidths=[530])
+            p_terms = "<b>💳 Payment Terms Policy:</b> Discounted rate of <b>SAR 2,800</b> is an instant payment offer at registration. C-Pay 12-Month Plan total price is <b>SAR 3,000</b> (12 monthly payments of SAR 250)."
+            p_table = Table([[Paragraph(p_terms, policy_style)]], colWidths=[555])
             p_table.setStyle(TableStyle([
                 ('BACKGROUND', (0,0), (-1,-1), colors.HexColor('#FEF3C7')),
                 ('BOX', (0,0), (-1,-1), 0.5, colors.HexColor('#F59E0B')),
-                ('TOPPADDING', (0,0), (-1,-1), 4),
-                ('BOTTOMPADDING', (0,0), (-1,-1), 4),
-                ('LEFTPADDING', (0,0), (-1,-1), 6),
-                ('RIGHTPADDING', (0,0), (-1,-1), 6),
+                ('TOPPADDING', (0,0), (-1,-1), 2.5),
+                ('BOTTOMPADDING', (0,0), (-1,-1), 2.5),
+                ('LEFTPADDING', (0,0), (-1,-1), 4),
+                ('RIGHTPADDING', (0,0), (-1,-1), 4),
             ]))
-            ipad_card_elements.append(p_table)
-            ipad_card_elements.append(Spacer(1, 4))
+            elements.append(p_table)
+            elements.append(Spacer(1, 2))
 
-            # License Renewal Box inside Card
-            p_renew = "<b>⚠️ Annual Software License Renewal Notice:</b> The initial package fee covers Year 1 hardware, provisioning, and software setups. All active management licenses (Jamf MDM, Microsoft 365, Cloud platform access) <b>must be renewed annually</b> by parents to keep the device compliant with school systems."
-            r_table = Table([[Paragraph(p_renew, policy_style)]], colWidths=[530])
+            p_renew = "<b>⚠️ Annual License Renewal:</b> Initial fee covers Year 1 setup. Active management licenses (Jamf MDM, Microsoft 365) <b>must be renewed annually</b> by parents."
+            r_table = Table([[Paragraph(p_renew, policy_style)]], colWidths=[555])
             r_table.setStyle(TableStyle([
                 ('BACKGROUND', (0,0), (-1,-1), colors.HexColor('#FEE2E2')),
                 ('BOX', (0,0), (-1,-1), 0.5, colors.HexColor('#EF4444')),
-                ('TOPPADDING', (0,0), (-1,-1), 4),
-                ('BOTTOMPADDING', (0,0), (-1,-1), 4),
-                ('LEFTPADDING', (0,0), (-1,-1), 6),
-                ('RIGHTPADDING', (0,0), (-1,-1), 6),
+                ('TOPPADDING', (0,0), (-1,-1), 2.5),
+                ('BOTTOMPADDING', (0,0), (-1,-1), 2.5),
+                ('LEFTPADDING', (0,0), (-1,-1), 4),
+                ('RIGHTPADDING', (0,0), (-1,-1), 4),
             ]))
-            ipad_card_elements.append(r_table)
+            elements.append(r_table)
 
-            # Outer Container Outer Table
-            outer_ipad_container = Table([[ipad_card_elements]], colWidths=[555])
-            outer_ipad_container.setStyle(TableStyle([
-                ('BACKGROUND', (0,0), (-1,-1), colors.HexColor('#F8FAFC')),
-                ('BOX', (0,0), (-1,-1), 1, colors.HexColor('#CBD5E1')),
-                ('TOPPADDING', (0,0), (-1,-1), 8),
-                ('BOTTOMPADDING', (0,0), (-1,-1), 8),
-                ('LEFTPADDING', (0,0), (-1,-1), 10),
-                ('RIGHTPADDING', (0,0), (-1,-1), 10),
-            ]))
-            elements.append(outer_ipad_container)
+        # -----------------------------------------------------
+        # 6. PARENT / GUARDIAN SIGNATURE SECTION
+        # -----------------------------------------------------
+        elements.append(Spacer(1, 8))
+        
+        sig_label_style = ParagraphStyle('SigLabel', parent=styles['Normal'], fontName='Helvetica-Bold', fontSize=8, leading=10, textColor=colors.HexColor('#0B2545'))
+        sig_sub_style = ParagraphStyle('SigSub', parent=styles['Normal'], fontName='Helvetica', fontSize=7, leading=9, textColor=colors.HexColor('#64748B'))
+
+        sig_cell_left = [
+            Paragraph("<b>Parent / Guardian Acknowledgment:</b>", sig_label_style),
+            Spacer(1, 12),
+            Paragraph("__________________________________________", sig_sub_style),
+            Paragraph("Signature & Date", sig_sub_style)
+        ]
+
+        sig_cell_right = [
+            Paragraph("<b>For Yenepoya International Schools:</b>", sig_label_style),
+            Spacer(1, 12),
+            Paragraph("__________________________________________", sig_sub_style),
+            Paragraph("Authorized Stamp & Date", sig_sub_style)
+        ]
+
+        sig_table = Table([[sig_cell_left, sig_cell_right]], colWidths=[275, 280])
+        sig_table.setStyle(TableStyle([
+            ('VALIGN', (0,0), (-1,-1), 'TOP'),
+            ('LEFTPADDING', (0,0), (-1,-1), 0),
+            ('RIGHTPADDING', (0,0), (-1,-1), 0),
+            ('TOPPADDING', (0,0), (-1,-1), 0),
+            ('BOTTOMPADDING', (0,0), (-1,-1), 0),
+        ]))
+        elements.append(sig_table)
 
         doc.build(elements)
         content_buffer.seek(0)
