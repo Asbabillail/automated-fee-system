@@ -43,9 +43,15 @@ if "auth" not in st.session_state:
         st.stop()  # Halt execution until authenticated
 
 # Extract user profile information securely from token
-user_info = st.session_state["auth"].get("id_token", {})
-active_full_name = user_info.get("name", "Staff Member")
-active_email = user_info.get("preferred_username", "user@yenschoolksa.com")
+auth_data = st.session_state.get("auth")
+user_info = auth_data.get("id_token") if isinstance(auth_data, dict) else {}
+
+# Fallback if user_info is None or not a dict
+if not isinstance(user_info, dict):
+    user_info = {}
+
+active_full_name = user_info.get("name") or "Staff Member"
+active_email = user_info.get("preferred_username") or "user@yenschoolksa.com"
 active_first_name = active_full_name.split()[0] if active_full_name else "Staff"
 
 # Sidebar Display & Sign Out Control
