@@ -46,7 +46,7 @@ st.markdown("""
         color: #FFFFFF;
         padding: 24px;
         border-radius: 12px;
-        margin-bottom: 25px;
+        margin-bottom: 15px;
         box-shadow: 0 4px 15px rgba(56, 189, 248, 0.15);
     }
     .main-header h1 {
@@ -76,7 +76,79 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
-# Header Section
+# ---------------------------------------------------------
+# 2. DYNAMIC TEAM ACCOUNTS & NAME PARSER
+# ---------------------------------------------------------
+def extract_display_name(email_or_name: str, first_name_only: bool = False) -> str:
+    """
+    Dynamically converts email addresses into formatted names.
+    Examples:
+        'farda.khann@yenschoolksa.com' -> 'Farda Khann' (or 'Farda' if first_name_only=True)
+        'ayat.alenezi@yenschoolksa.com' -> 'Ayat Alenezi'
+    """
+    if not email_or_name:
+        return "Staff Member"
+        
+    if "@" in email_or_name:
+        username = email_or_name.split("@")[0]
+        parts = [p.capitalize() for p in username.replace(".", " ").replace("_", " ").split()]
+        if first_name_only and len(parts) > 0:
+            return parts[0]
+        return " ".join(parts)
+        
+    return email_or_name.title()
+
+# Team workspace accounts (Add future invited emails cleanly here)
+TEAM_EMAILS = [
+    "farda.khann@yenschoolksa.com",
+    "wafa.alsaleh@yenschoolksa.com",
+    "administration@yenschoolksa.com",
+    "ayat.alenezi@yenschoolksa.com",
+    "hameem.tayyyib@yenschoolksa.com"
+]
+
+# Auto-detect Streamlit user email if logged in
+active_user_email = getattr(st, "experimental_user", {}).get("email", "")
+
+default_user_idx = 0
+if active_user_email in TEAM_EMAILS:
+    default_user_idx = TEAM_EMAILS.index(active_user_email)
+
+# ---------------------------------------------------------
+# 3. SIDEBAR CONTROLS & USER SELECTOR
+# ---------------------------------------------------------
+st.sidebar.header("👤 Staff Account Setup")
+selected_user_email = st.sidebar.selectbox(
+    "Active Staff User",
+    options=TEAM_EMAILS,
+    index=default_user_idx,
+    format_func=lambda email: extract_display_name(email, first_name_only=False)
+)
+
+active_full_name = extract_display_name(selected_user_email, first_name_only=False)
+active_first_name = extract_display_name(selected_user_email, first_name_only=True)
+
+st.sidebar.divider()
+st.sidebar.header("⚙️ Student & Family Setup")
+num_students = st.sidebar.number_input("Number of Students", min_value=1, max_value=6, value=1, step=1)
+nationality = st.sidebar.selectbox("Nationality (Tax Category)", ["Saudi National (0% VAT)", "Non-Saudi (15% VAT)"])
+parent_name = st.sidebar.text_input("Parent / Guardian Name", "Parent/Guardian")
+
+is_non_saudi = "Non-Saudi" in nationality
+vat_rate = 0.15 if is_non_saudi else 0.0
+
+st.sidebar.divider()
+st.sidebar.header("📅 Date & Validity Controls")
+issue_date = st.sidebar.date_input("Quotation Issue Date (KSA)", value=current_ksa_date)
+discount_validity_days = st.sidebar.slider("Discount Validity (Days)", min_value=1, max_value=60, value=15)
+quote_validity_days = st.sidebar.slider("Quotation Validity (Days)", min_value=1, max_value=90, value=30)
+
+discount_expiry_date = issue_date + timedelta(days=discount_validity_days)
+quote_expiry_date = issue_date + timedelta(days=quote_validity_days)
+
+# ---------------------------------------------------------
+# 4. HEADER & DYNAMIC WELCOME DASHBOARD
+# ---------------------------------------------------------
 logo_path = "our-logo.png"
 
 col_header_left, col_header_right = st.columns([1, 4])
@@ -94,10 +166,28 @@ with col_header_right:
         </div>
     """, unsafe_allow_html=True)
 
+# Personalized Welcome Dashboard Banner
+st.markdown(f"""
+    <div style="
+        background: linear-gradient(135deg, #1E293B 0%, #0F172A 100%);
+        border: 1px solid #38BDF8;
+        padding: 16px 20px;
+        border-radius: 10px;
+        margin-bottom: 25px;
+        box-shadow: 0 4px 10px rgba(56, 189, 248, 0.1);
+    ">
+        <h3 style="color: #38BDF8; margin: 0; font-size: 1.35rem; font-weight: 700;">
+            Welcome back, {active_first_name}! 👋
+        </h3>
+        <p style="color: #94A3B8; margin: 4px 0 0 0; font-size: 0.95rem;">
+            Active User Account: <strong style="color: #F8FAFC;">{active_full_name}</strong>
+        </p>
+    </div>
+""", unsafe_allow_html=True)
+
 # ---------------------------------------------------------
-# 2. MASTER DATA MAPPINGS
+# 5. MASTER DATA MAPPINGS
 # ---------------------------------------------------------
-# KG: 500 | Grade 1-3: 1200 | Grade 4 and above: 1500
 books_fee_map = {
     "KG. 1": 500, "KG. 2": 500, "KG. 3": 500,
     "Grade 1": 1200, "Grade 2": 1200, "Grade 3": 1200,
@@ -122,32 +212,12 @@ old_tuition_map = {
     "Grade 10": 34500, "Grade 11": 36500, "Grade 12": 38500
 }
 
-# ---------------------------------------------------------
-# 3. SIDEBAR CONTROLS & VALIDITY SETTINGS
-# ---------------------------------------------------------
-st.sidebar.header("⚙️ Student & Family Setup")
-num_students = st.sidebar.number_input("Number of Students", min_value=1, max_value=6, value=1, step=1)
-nationality = st.sidebar.selectbox("Nationality (Tax Category)", ["Saudi National (0% VAT)", "Non-Saudi (15% VAT)"])
-parent_name = st.sidebar.text_input("Parent / Guardian Name", "Parent/Guardian")
-
-is_non_saudi = "Non-Saudi" in nationality
-vat_rate = 0.15 if is_non_saudi else 0.0
-
-st.sidebar.divider()
-st.sidebar.header("📅 Date & Validity Controls")
-issue_date = st.sidebar.date_input("Quotation Issue Date (KSA)", value=current_ksa_date)
-discount_validity_days = st.sidebar.slider("Discount Validity (Days)", min_value=1, max_value=60, value=15)
-quote_validity_days = st.sidebar.slider("Quotation Validity (Days)", min_value=1, max_value=90, value=30)
-
-discount_expiry_date = issue_date + timedelta(days=discount_validity_days)
-quote_expiry_date = issue_date + timedelta(days=quote_validity_days)
-
 family_total_quote = 0.0
 student_summaries = []
 full_ipad_pkg_students = []
 
 # ---------------------------------------------------------
-# 4. DYNAMIC STUDENT INPUT TABS
+# 6. DYNAMIC STUDENT INPUT TABS
 # ---------------------------------------------------------
 tabs = st.tabs([f"🎓 Student {i+1}" for i in range(num_students)])
 
@@ -271,15 +341,16 @@ for i, tab in enumerate(tabs):
         st.markdown('</div>', unsafe_allow_html=True)
 
 # ---------------------------------------------------------
-# 5. STREAMLIT SCREEN SUMMARY DISPLAY
+# 7. STREAMLIT SCREEN SUMMARY DISPLAY
 # ---------------------------------------------------------
 st.divider()
 st.subheader("📊 Official Family Quotation Breakdown")
 
-val_col1, val_col2, val_col3 = st.columns(3)
-val_col1.info(f"📅 **Issue Date (KSA):** {issue_date.strftime('%d %b %Y')}")
-val_col2.warning(f"⏳ **Discount Valid Until:** {discount_expiry_date.strftime('%d %b %Y')} ({discount_validity_days} Days)")
-val_col3.error(f"🛑 **Quotation Expires:** {quote_expiry_date.strftime('%d %b %Y')} ({quote_validity_days} Days)")
+val_col1, val_col2, val_col3, val_col4 = st.columns(4)
+val_col1.info(f"📅 **Issue Date:** {issue_date.strftime('%d %b %Y')}")
+val_col2.warning(f"⏳ **Discount Valid:** {discount_expiry_date.strftime('%d %b %Y')}")
+val_col3.error(f"🛑 **Expires:** {quote_expiry_date.strftime('%d %b %Y')}")
+val_col4.success(f"👤 **Generated By:** {active_full_name}")
 
 metrics_labels = [
     "Student Status",
@@ -376,7 +447,7 @@ if len(full_ipad_pkg_students) > 0:
 st.divider()
 
 # ---------------------------------------------------------
-# 6. EXACT MATCH PDF GENERATOR
+# 8. EXACT MATCH PDF GENERATOR
 # ---------------------------------------------------------
 def create_pdf_bytes():
     try:
@@ -393,7 +464,7 @@ def create_pdf_bytes():
         elements = []
         styles = getSampleStyleSheet()
 
-        # --- Typography Styles ---
+        # Typography Styles
         section_heading_style = ParagraphStyle(
             'SectionHeader',
             parent=styles['Heading2'],
@@ -409,8 +480,8 @@ def create_pdf_bytes():
             'MetaHeader',
             parent=styles['Normal'],
             fontName='Helvetica-Bold',
-            fontSize=9.5,
-            leading=12,
+            fontSize=9,
+            leading=11.5,
             textColor=colors.HexColor('#0B2545')
         )
 
@@ -449,9 +520,16 @@ def create_pdf_bytes():
         )
 
         # -----------------------------------------------------
-        # 1. HEADER METADATA & STYLED BADGES
+        # HEADER METADATA & BADGES
         # -----------------------------------------------------
-        elements.append(Paragraph(f"<b>Parent / Guardian Name:</b> {parent_name} &nbsp;&nbsp;|&nbsp;&nbsp; <b>Tax Category:</b> {nationality}", meta_header_style))
+        elements.append(
+            Paragraph(
+                f"<b>Parent / Guardian Name:</b> {parent_name} &nbsp;&nbsp;|&nbsp;&nbsp; "
+                f"<b>Tax Category:</b> {nationality} &nbsp;&nbsp;|&nbsp;&nbsp; "
+                f"<b>Generated By:</b> {active_full_name}", 
+                meta_header_style
+            )
+        )
         elements.append(Spacer(1, 6))
 
         badge_col1 = [Paragraph(f"📅 Issue Date (KSA):<br/><b>{issue_date.strftime('%d %b %Y')}</b>", badge_text_blue)]
@@ -474,7 +552,7 @@ def create_pdf_bytes():
         elements.append(Spacer(1, 8))
 
         # -----------------------------------------------------
-        # 2. TABLE 1: OFFICIAL FAMILY QUOTATION BREAKDOWN
+        # TABLE 1: OFFICIAL FAMILY QUOTATION BREAKDOWN
         # -----------------------------------------------------
         elements.append(Paragraph("📊 Official Family Quotation Breakdown", section_heading_style))
         
@@ -516,7 +594,7 @@ def create_pdf_bytes():
         elements.append(Spacer(1, 10))
 
         # -----------------------------------------------------
-        # 3. TABLE 2: STUDENT TOTALS SUMMARY TABLE
+        # TABLE 2: STUDENT TOTALS SUMMARY TABLE
         # -----------------------------------------------------
         elements.append(Paragraph("📋 Student Totals Summary Table", section_heading_style))
         
@@ -566,7 +644,7 @@ def create_pdf_bytes():
         elements.append(Spacer(1, 8))
 
         # -----------------------------------------------------
-        # 4. GRAND TOTAL SUMMARY BANNER
+        # GRAND TOTAL SUMMARY BANNER
         # -----------------------------------------------------
         summary_p_style = ParagraphStyle(
             'GrandTotalBanner',
@@ -590,7 +668,7 @@ def create_pdf_bytes():
         elements.append(banner_table)
 
         # -----------------------------------------------------
-        # 5. FULL STUDENT IPAD PACKAGE DETAILS
+        # FULL STUDENT IPAD PACKAGE DETAILS
         # -----------------------------------------------------
         if len(full_ipad_pkg_students) > 0:
             elements.append(Spacer(1, 8))
@@ -660,7 +738,7 @@ def create_pdf_bytes():
             elements.append(r_table)
 
         # -----------------------------------------------------
-        # 6. SIGNATURE CANVAS DRAWING (POSITIONED ABOVE FOOTER)
+        # SIGNATURE CANVAS DRAWING
         # -----------------------------------------------------
         def draw_bottom_signatures(canvas, doc):
             canvas.saveState()
@@ -670,14 +748,16 @@ def create_pdf_bytes():
 
             sig_cell_left = [
                 Paragraph("<b>Parent / Guardian Acknowledgment:</b>", sig_label_style),
-                Spacer(1, 14),
+                Spacer(1, 8),
                 Paragraph("__________________________________________", sig_sub_style),
                 Paragraph("Signature & Date", sig_sub_style)
             ]
 
             sig_cell_right = [
                 Paragraph("<b>For Yenepoya International Schools:</b>", sig_label_style),
-                Spacer(1, 14),
+                Spacer(1, 6),
+                Paragraph(f"<b>Prepared By:</b> {active_full_name}", sig_sub_style),
+                Spacer(1, 6),
                 Paragraph("__________________________________________", sig_sub_style),
                 Paragraph("Authorized Stamp & Date", sig_sub_style)
             ]
