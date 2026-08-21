@@ -6,7 +6,7 @@ import pypdf
 from datetime import datetime, timedelta
 import zoneinfo
 from reportlab.lib.pagesizes import letter
-from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle
+from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle, HRFlowable
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from reportlab.lib import colors
 
@@ -204,7 +204,6 @@ for i, tab in enumerate(tabs):
         discount_amount = base_tuition * (discount_pct / 100.0)
         net_tuition = base_tuition - discount_amount
         
-        # VAT calculated STRICTLY on net school tuition fee
         vat_amount = net_tuition * vat_rate
         tuition_with_vat = net_tuition + vat_amount
 
@@ -267,7 +266,7 @@ for i, tab in enumerate(tabs):
         st.markdown('</div>', unsafe_allow_html=True)
 
 # ---------------------------------------------------------
-# 5. CONSOLIDATED SUMMARY & HORIZONTAL TABLE FORMATTING
+# 5. STREAMLIT SCREEN SUMMARY DISPLAY
 # ---------------------------------------------------------
 st.divider()
 st.subheader("📊 Official Family Quotation Breakdown")
@@ -283,7 +282,7 @@ metrics_labels = [
     "Base Tuition (SAR)",
     "Discount Percentage",
     "Discount Amount (SAR)",
-    "Tuition VAT (15% on Net Fee) (SAR)" if is_non_saudi else "VAT Amount (SAR)",
+    "VAT Amount (SAR)" if is_non_saudi else "VAT Amount (SAR)",
     "Mandatory Books Fee (SAR)",
     "iPad Package / Migration (SAR)",
     "Bus Transportation (SAR)",
@@ -310,9 +309,6 @@ for s in student_summaries:
 df_horizontal = pd.DataFrame(horizontal_data)
 st.table(df_horizontal)
 
-# ---------------------------------------------------------
-# DEDICATED STUDENT-BY-STUDENT SUMMARY TABLE & GRAND TOTAL
-# ---------------------------------------------------------
 st.subheader("📋 Student Totals Summary Table")
 
 totals_table_data = []
@@ -336,9 +332,6 @@ col_p1, col_p2 = st.columns(2)
 col_p1.info(f"**Term 1 Payment Required:** `{family_first_payment:,.2f} SAR`")
 col_p2.success(f"**Term 2 Payment Required:** `{family_second_payment:,.2f} SAR`")
 
-# ---------------------------------------------------------
-# ATTRACTIVE IPAD SPECIFICATION CALLOUT CARD (PURE STREAMLIT)
-# ---------------------------------------------------------
 if len(full_ipad_pkg_students) > 0:
     with st.container(border=True):
         st.subheader("📱 Full Student iPad Package Details")
@@ -382,7 +375,7 @@ if len(full_ipad_pkg_students) > 0:
 st.divider()
 
 # ---------------------------------------------------------
-# 6. PDF GENERATION BUILDER (UPDATED TABLE & IPAD BULLETS)
+# 6. EXACT MATCH PDF GENERATOR
 # ---------------------------------------------------------
 def create_pdf_bytes():
     try:
@@ -392,134 +385,243 @@ def create_pdf_bytes():
             pagesize=letter, 
             rightMargin=25, 
             leftMargin=25, 
-            topMargin=120, 
-            bottomMargin=75
+            topMargin=115, 
+            bottomMargin=60
         )
         
         elements = []
         styles = getSampleStyleSheet()
 
-        title_style = ParagraphStyle(
-            'DocTitle',
-            parent=styles['Heading1'],
+        section_heading_style = ParagraphStyle(
+            'SectionHeader',
+            parent=styles['Heading2'],
             fontName='Helvetica-Bold',
-            fontSize=13,
-            leading=16,
+            fontSize=11,
+            leading=14,
             textColor=colors.HexColor('#0B2545'),
-            spaceAfter=8
+            spaceBefore=6,
+            spaceAfter=6
         )
         
         meta_style = ParagraphStyle(
             'MetaText',
             parent=styles['Normal'],
             fontName='Helvetica',
-            fontSize=8.5,
-            leading=12,
+            fontSize=8,
+            leading=11,
             textColor=colors.HexColor('#333333')
         )
 
-        elements.append(Paragraph("OFFICIAL ADMISSION FEE QUOTATION", title_style))
-        elements.append(Paragraph(f"<b>Parent / Guardian:</b> {parent_name} &nbsp;&nbsp;|&nbsp;&nbsp; <b>Tax Status:</b> {nationality}", meta_style))
-        elements.append(Paragraph(f"<b>Issue Date:</b> {issue_date.strftime('%d %b %Y')} &nbsp;&nbsp;|&nbsp;&nbsp; <b>Discount Valid Until:</b> {discount_expiry_date.strftime('%d %b %Y')} &nbsp;&nbsp;|&nbsp;&nbsp; <b>Quote Expiry:</b> {quote_expiry_date.strftime('%d %b %Y')}", meta_style))
-        elements.append(Spacer(1, 10))
-
-        # 1. SUMMARY TABLE WITH INTEGRATED GRAND TOTAL ROW
-        pdf_table_headers = ["Fee Component"] + [s["Student Name"] for s in student_summaries]
-        pdf_table_data = [pdf_table_headers]
-
-        for idx, row_name in enumerate(metrics_labels):
-            row_data = [row_name]
-            for s in student_summaries:
-                if idx == 0: row_data.append(s["Student Status"])
-                elif idx == 1: row_data.append(s["Grade"])
-                elif idx == 2: row_data.append(f"{s['Base Tuition']:,.0f}")
-                elif idx == 3: row_data.append(s["Discount %"])
-                elif idx == 4: row_data.append(f"-{s['Discount Amt']:,.0f}")
-                elif idx == 5: row_data.append(f"+{s['VAT']:,.0f}")
-                elif idx == 6: row_data.append(f"{s['Mandatory Books']:,.0f}")
-                elif idx == 7: row_data.append(f"{s['iPad Fee']:,.0f}")
-                elif idx == 8: row_data.append(f"{s['Bus Fee']:,.0f}")
-                elif idx == 9: row_data.append(f"{s['Total Fee (SAR)']:,.2f}")
-            pdf_table_data.append(row_data)
-
-        # Integrated Grand Total Table Row
-        grand_total_row = ["Grand Total Quote"]
-        if len(student_summaries) > 1:
-            grand_total_row.extend([""] * (len(student_summaries) - 1))
-        grand_total_row.append(f"{family_total_quote:,.2f} SAR")
-        pdf_table_data.append(grand_total_row)
-
-        num_cols = len(pdf_table_headers)
-        first_col_w = 172
-        rem_col_w = (562 - first_col_w) / max(1, num_cols - 1)
-        col_widths = [first_col_w] + [rem_col_w] * (num_cols - 1)
-
-        # Style table including bottom grand total row
-        table_styles = [
-            ('BACKGROUND', (0,0), (-1,0), colors.HexColor('#0B2545')),
-            ('TEXTCOLOR', (0,0), (-1,0), colors.white),
-            ('ALIGN', (0,0), (-1,-1), 'CENTER'),
-            ('ALIGN', (0,0), (0,-1), 'LEFT'),
-            ('VALIGN', (0,0), (-1,-1), 'MIDDLE'),
-            ('GRID', (0,0), (-1,-1), 0.5, colors.HexColor('#CBD5E1')),
-            ('FONTNAME', (0,0), (-1,0), 'Helvetica-Bold'),
-            ('FONTNAME', (0,1), (0,-1), 'Helvetica-Bold'),
-            ('FONTSIZE', (0,0), (-1,-1), 8),
-            ('BOTTOMPADDING', (0,0), (-1,-1), 4),
-            ('TOPPADDING', (0,0), (-1,-1), 4),
-            # Grand total row formatting
-            ('BACKGROUND', (0,-1), (-1,-1), colors.HexColor('#F1F5F9')),
-            ('FONTNAME', (0,-1), (-1,-1), 'Helvetica-Bold'),
-            ('TEXTCOLOR', (0,-1), (-1,-1), colors.HexColor('#0B2545')),
-        ]
-        
-        if len(student_summaries) > 1:
-            table_styles.append(('SPAN', (0, -1), (-2, -1)))
-
-        pdf_table = Table(pdf_table_data, colWidths=col_widths)
-        pdf_table.setStyle(TableStyle(table_styles))
-        elements.append(pdf_table)
-        elements.append(Spacer(1, 8))
-        
-        # Term Payments Breakdown
-        summary_text = f"<b>Term 1 Payment Required:</b> {family_first_payment:,.2f} SAR &nbsp;&nbsp;|&nbsp;&nbsp; <b>Term 2 Payment Required:</b> {family_second_payment:,.2f} SAR"
-        elements.append(Paragraph(summary_text, ParagraphStyle(
-            'SummaryBox',
+        cell_hdr_style = ParagraphStyle(
+            'TableHdr',
             parent=styles['Normal'],
             fontName='Helvetica-Bold',
-            fontSize=8.5,
-            leading=12,
-            textColor=colors.HexColor('#0B2545')
-        )))
+            fontSize=7.5,
+            leading=9,
+            textColor=colors.white,
+            alignment=1
+        )
+        
+        cell_body_style = ParagraphStyle(
+            'TableBody',
+            parent=styles['Normal'],
+            fontName='Helvetica',
+            fontSize=7.5,
+            leading=9,
+            textColor=colors.HexColor('#1E293B'),
+            alignment=1
+        )
 
-        # 2. BULLET-POINTED IPAD DETAILS SECTION FOR PDF
+        cell_body_left = ParagraphStyle(
+            'TableBodyLeft',
+            parent=styles['Normal'],
+            fontName='Helvetica-Bold',
+            fontSize=7.5,
+            leading=9,
+            textColor=colors.HexColor('#0B2545'),
+            alignment=0
+        )
+
+        # Meta Header Box
+        elements.append(Paragraph(f"<b>Parent / Guardian:</b> {parent_name} &nbsp;&nbsp;|&nbsp;&nbsp; <b>Tax Status:</b> {nationality}", meta_style))
+        elements.append(Paragraph(f"<b>Issue Date:</b> {issue_date.strftime('%d %b %Y')} &nbsp;&nbsp;|&nbsp;&nbsp; <b>Discount Valid Until:</b> {discount_expiry_date.strftime('%d %b %Y')} ({discount_validity_days} Days) &nbsp;&nbsp;|&nbsp;&nbsp; <b>Quote Expires:</b> {quote_expiry_date.strftime('%d %b %Y')} ({quote_validity_days} Days)", meta_style))
+        elements.append(Spacer(1, 8))
+
+        # -----------------------------------------------------
+        # TABLE 1: OFFICIAL FAMILY QUOTATION BREAKDOWN
+        # -----------------------------------------------------
+        elements.append(Paragraph("📊 Official Family Quotation Breakdown", section_heading_style))
+        
+        t1_headers = [Paragraph("Fee Component", cell_body_left)] + [Paragraph(s["Student Name"], cell_hdr_style) for s in student_summaries]
+        t1_data = [t1_headers]
+
+        for idx, row_name in enumerate(metrics_labels):
+            row_cells = [Paragraph(row_name, cell_body_left)]
+            for s in student_summaries:
+                if idx == 0: val = s["Student Status"]
+                elif idx == 1: val = s["Grade"]
+                elif idx == 2: val = f"{s['Base Tuition']:,.2f}"
+                elif idx == 3: val = s["Discount %"]
+                elif idx == 4: val = f"-{s['Discount Amt']:,.2f}"
+                elif idx == 5: val = f"+{s['VAT']:,.2f}"
+                elif idx == 6: val = f"{s['Mandatory Books']:,.2f}"
+                elif idx == 7: val = f"{s['iPad Fee']:,.2f}"
+                elif idx == 8: val = f"{s['Bus Fee']:,.2f}"
+                elif idx == 9: val = f"<b>{s['Total Fee (SAR)']:,.2f}</b>"
+                row_cells.append(Paragraph(str(val), cell_body_style))
+            t1_data.append(row_cells)
+
+        num_cols = len(t1_headers)
+        f_width = 160
+        r_width = (562 - f_width) / max(1, num_cols - 1)
+        t1_col_widths = [f_width] + [r_width] * (num_cols - 1)
+
+        pdf_t1 = Table(t1_data, colWidths=t1_col_widths)
+        pdf_t1.setStyle(TableStyle([
+            ('BACKGROUND', (0,0), (-1,0), colors.HexColor('#0B2545')),
+            ('ALIGN', (0,0), (-1,-1), 'CENTER'),
+            ('VALIGN', (0,0), (-1,-1), 'MIDDLE'),
+            ('GRID', (0,0), (-1,-1), 0.5, colors.HexColor('#CBD5E1')),
+            ('TOPPADDING', (0,0), (-1,-1), 3),
+            ('BOTTOMPADDING', (0,0), (-1,-1), 3),
+            ('BACKGROUND', (0,1), (-1,-1), colors.HexColor('#F8FAFC')),
+        ]))
+        elements.append(pdf_t1)
+        elements.append(Spacer(1, 10))
+
+        # -----------------------------------------------------
+        # TABLE 2: STUDENT TOTALS SUMMARY TABLE
+        # -----------------------------------------------------
+        elements.append(Paragraph("📋 Student Totals Summary Table", section_heading_style))
+        
+        if is_non_saudi:
+            t2_headers = ["Student", "Grade", "Net School Tuition", "VAT (15%)", "Books & Add-Ons", "Total Amount"]
+            t2_widths = [120, 50, 100, 85, 100, 107]
+        else:
+            t2_headers = ["Student", "Grade", "Net School Tuition", "Books & Add-Ons", "Total Amount"]
+            t2_widths = [140, 60, 120, 120, 122]
+
+        t2_data = [[Paragraph(h, cell_hdr_style) for h in t2_headers]]
+
+        for idx, s in enumerate(student_summaries):
+            net_t = s['Base Tuition'] - s['Discount Amt']
+            add_ons = s['Mandatory Books'] + s['iPad Fee'] + s['Bus Fee']
+            
+            if is_non_saudi:
+                row = [
+                    Paragraph(f"Student {idx+1}: {s['Student Name']}", cell_body_left),
+                    Paragraph(s['Grade'], cell_body_style),
+                    Paragraph(f"{net_t:,.2f} SAR", cell_body_style),
+                    Paragraph(f"{s['VAT']:,.2f} SAR", cell_body_style),
+                    Paragraph(f"{add_ons:,.2f} SAR", cell_body_style),
+                    Paragraph(f"<b>{s['Total Fee (SAR)']:,.2f} SAR</b>", cell_body_style)
+                ]
+            else:
+                row = [
+                    Paragraph(f"Student {idx+1}: {s['Student Name']}", cell_body_left),
+                    Paragraph(s['Grade'], cell_body_style),
+                    Paragraph(f"{net_t:,.2f} SAR", cell_body_style),
+                    Paragraph(f"{add_ons:,.2f} SAR", cell_body_style),
+                    Paragraph(f"<b>{s['Total Fee (SAR)']:,.2f} SAR</b>", cell_body_style)
+                ]
+            t2_data.append(row)
+
+        pdf_t2 = Table(t2_data, colWidths=t2_widths)
+        pdf_t2.setStyle(TableStyle([
+            ('BACKGROUND', (0,0), (-1,0), colors.HexColor('#1E293B')),
+            ('ALIGN', (0,0), (-1,-1), 'CENTER'),
+            ('VALIGN', (0,0), (-1,-1), 'MIDDLE'),
+            ('GRID', (0,0), (-1,-1), 0.5, colors.HexColor('#CBD5E1')),
+            ('TOPPADDING', (0,0), (-1,-1), 4),
+            ('BOTTOMPADDING', (0,0), (-1,-1), 4),
+            ('BACKGROUND', (0,1), (-1,-1), colors.HexColor('#FFFFFF')),
+        ]))
+        elements.append(pdf_t2)
+        elements.append(Spacer(1, 8))
+
+        # -----------------------------------------------------
+        # GRAND TOTAL & TERM PAYMENT BANNER
+        # -----------------------------------------------------
+        summary_p_style = ParagraphStyle(
+            'GrandTotalBanner',
+            parent=styles['Normal'],
+            fontName='Helvetica-Bold',
+            fontSize=9.5,
+            leading=13,
+            textColor=colors.HexColor('#0B2545')
+        )
+        
+        banner_text = f"<b>Grand Total Quote:</b> <font color='#059669'>{family_total_quote:,.2f} SAR</font> &nbsp;&nbsp;|&nbsp;&nbsp; <b>Term 1 Payment:</b> {family_first_payment:,.2f} SAR &nbsp;&nbsp;|&nbsp;&nbsp; <b>Term 2 Payment:</b> {family_second_payment:,.2f} SAR"
+        elements.append(Paragraph(banner_text, summary_p_style))
+
+        # -----------------------------------------------------
+        # FULL STUDENT IPAD PACKAGE DETAILS BOX (IF APPLICABLE)
+        # -----------------------------------------------------
         if len(full_ipad_pkg_students) > 0:
             elements.append(Spacer(1, 10))
-            
-            bullet_title_style = ParagraphStyle(
-                'IPadTitle',
-                parent=styles['Normal'],
-                fontName='Helvetica-Bold',
-                fontSize=9,
-                leading=12,
-                textColor=colors.HexColor('#0B2545')
-            )
-            bullet_item_style = ParagraphStyle(
-                'IPadBullet',
-                parent=styles['Normal'],
-                fontName='Helvetica',
-                fontSize=7.5,
-                leading=10,
-                textColor=colors.HexColor('#334155')
-            )
-            
-            elements.append(Paragraph(f"<b>📱 Full Student iPad Package Details (Selected for: {', '.join(full_ipad_pkg_students)}):</b>", bullet_title_style))
+            elements.append(Paragraph("📱 Full Student iPad Package Details", section_heading_style))
+            elements.append(Paragraph(f"<b>Selected for Student(s):</b> {', '.join(full_ipad_pkg_students)}", meta_style))
             elements.append(Spacer(1, 4))
-            elements.append(Paragraph("• <b>Hardware & Protection:</b> iPad A16 (128GB Storage), Heavy-Duty Protective Case, High-Precision Stylus Pen, 36-Month AppleCare+ Enterprise Warranty.", bullet_item_style))
-            elements.append(Paragraph("• <b>Digital Management:</b> Jamf School Management System (MDM), Microsoft 365 Education (1TB), Apple Managed Educational ID & 200GB iCloud.", bullet_item_style))
-            elements.append(Paragraph("• <b>Payment Offer:</b> Discounted rate of SAR 2,800 valid on spot payment at registration (SAR 3,000 on C-Pay 12-month installment plan).", bullet_item_style))
-            elements.append(Paragraph("• <b>License Renewal Notice:</b> Management and cloud software licenses must be renewed annually by parents to maintain compliance.", bullet_item_style))
-        
+
+            ipad_hdr_style = ParagraphStyle('IpadHdr', parent=styles['Normal'], fontName='Helvetica-Bold', fontSize=8, leading=10, textColor=colors.HexColor('#0B2545'))
+            ipad_item_style = ParagraphStyle('IpadItem', parent=styles['Normal'], fontName='Helvetica', fontSize=7.5, leading=10, textColor=colors.HexColor('#334155'))
+
+            col1_content = [
+                Paragraph("<b>📦 Included Hardware & Protection:</b>", ipad_hdr_style),
+                Paragraph("• Brand New iPad A16 (128GB Storage)", ipad_item_style),
+                Paragraph("• Rugged Heavy-Duty Protective Case", ipad_item_style),
+                Paragraph("• School-Approved High-Precision Stylus Pen", ipad_item_style),
+                Paragraph("• AppleCare+ Enterprise Warranty (36 Months)", ipad_item_style),
+            ]
+            
+            col2_content = [
+                Paragraph("<b>⚙️ Digital Ecosystem & Management:</b>", ipad_hdr_style),
+                Paragraph("• Jamf School Management System (MDM)", ipad_item_style),
+                Paragraph("• Microsoft 365 Education Account (1TB Cloud)", ipad_item_style),
+                Paragraph("• Apple Managed Educational ID & 200GB iCloud", ipad_item_style),
+                Paragraph("• Pre-configured Security Profiles & Learning Apps", ipad_item_style),
+            ]
+
+            ipad_spec_table = Table([[col1_content, col2_content]], colWidths=[281, 281])
+            ipad_spec_table.setStyle(TableStyle([
+                ('VALIGN', (0,0), (-1,-1), 'TOP'),
+                ('LEFTPADDING', (0,0), (-1,-1), 0),
+                ('RIGHTPADDING', (0,0), (-1,-1), 0),
+                ('TOPPADDING', (0,0), (-1,-1), 0),
+                ('BOTTOMPADDING', (0,0), (-1,-1), 0),
+            ]))
+            elements.append(ipad_spec_table)
+            elements.append(Spacer(1, 6))
+
+            # Payment Terms Callout
+            policy_style = ParagraphStyle('PolicyBox', parent=styles['Normal'], fontName='Helvetica', fontSize=7.5, leading=10, textColor=colors.HexColor('#1E293B'))
+            
+            p_terms = "<b>💳 Payment Terms Policy:</b> The discounted rate of <b>SAR 2,800</b> is an <b>instant/spot payment offer</b> at the time of registration. If choosing the <b>C-Pay 12-Month Installment Plan</b>, the total price is <b>SAR 3,000</b> (12 monthly payments of SAR 250)."
+            p_table = Table([[Paragraph(p_terms, policy_style)]], colWidths=[562])
+            p_table.setStyle(TableStyle([
+                ('BACKGROUND', (0,0), (-1,-1), colors.HexColor('#FEF3C7')),
+                ('BOX', (0,0), (-1,-1), 0.5, colors.HexColor('#F59E0B')),
+                ('TOPPADDING', (0,0), (-1,-1), 4),
+                ('BOTTOMPADDING', (0,0), (-1,-1), 4),
+                ('LEFTPADDING', (0,0), (-1,-1), 6),
+                ('RIGHTPADDING', (0,0), (-1,-1), 6),
+            ]))
+            elements.append(p_table)
+            elements.append(Spacer(1, 4))
+
+            # License Renewal Callout
+            p_renew = "<b>⚠️ Annual Software License Renewal Notice:</b> The initial package fee covers Year 1 hardware, provisioning, and software setups. All active management licenses (Jamf MDM, Microsoft 365, Cloud platform access) <b>must be renewed annually</b> by parents to keep the device compliant with school systems."
+            r_table = Table([[Paragraph(p_renew, policy_style)]], colWidths=[562])
+            r_table.setStyle(TableStyle([
+                ('BACKGROUND', (0,0), (-1,-1), colors.HexColor('#FEE2E2')),
+                ('BOX', (0,0), (-1,-1), 0.5, colors.HexColor('#EF4444')),
+                ('TOPPADDING', (0,0), (-1,-1), 4),
+                ('BOTTOMPADDING', (0,0), (-1,-1), 4),
+                ('LEFTPADDING', (0,0), (-1,-1), 6),
+                ('RIGHTPADDING', (0,0), (-1,-1), 6),
+            ]))
+            elements.append(r_table)
+
         doc.build(elements)
         content_buffer.seek(0)
 
