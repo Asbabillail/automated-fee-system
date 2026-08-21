@@ -3,6 +3,8 @@ import pandas as pd
 import io
 import os
 import pypdf
+from datetime import datetime, timedelta
+import zoneinfo
 from reportlab.lib.pagesizes import letter
 from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
@@ -16,6 +18,13 @@ st.set_page_config(
     page_icon="🤖",
     layout="wide"
 )
+
+# Force Saudi Arabia Timezone (Asia/Riyadh UTC+3)
+try:
+    ksa_tz = zoneinfo.ZoneInfo("Asia/Riyadh")
+    current_ksa_date = datetime.now(ksa_tz).date()
+except Exception:
+    current_ksa_date = datetime.now().date()
 
 # Dark Tech Theme Styling
 st.markdown("""
@@ -98,38 +107,54 @@ with col_header_right:
     """, unsafe_allow_html=True)
 
 # ---------------------------------------------------------
-# 2. DATA MAPPINGS (NEW VS RETURNING)
+# 2. DATA MAPPINGS (INCLUDES GRADES 10, 11, 12)
 # ---------------------------------------------------------
 books_fee_map = {
     "KG. 1": 500, "KG. 2": 500, "KG. 3": 500,
     "Grade 1": 1200, "Grade 2": 1200, "Grade 3": 1200,
     "Grade 4": 1500, "Grade 5": 1500, "Grade 6": 1500,
-    "Grade 7": 1500, "Grade 8": 1500, "Grade 9": 1500
+    "Grade 7": 1500, "Grade 8": 1500, "Grade 9": 1500,
+    "Grade 10": 1800, "Grade 11": 1800, "Grade 12": 2000
 }
 
 new_tuition_map = {
     "KG. 1": 26000, "KG. 2": 26000, "KG. 3": 28000,
     "Grade 1": 33000, "Grade 2": 33000, "Grade 3": 33000,
     "Grade 4": 33000, "Grade 5": 36000, "Grade 6": 36000,
-    "Grade 7": 36000, "Grade 8": 36000, "Grade 9": 36000
+    "Grade 7": 36000, "Grade 8": 36000, "Grade 9": 36000,
+    "Grade 10": 38000, "Grade 11": 40000, "Grade 12": 42000
 }
 
 old_tuition_map = {
     "KG. 1": 21500, "KG. 2": 21500, "KG. 3": 23500,
     "Grade 1": 28500, "Grade 2": 28500, "Grade 3": 28500,
     "Grade 4": 30500, "Grade 5": 30500, "Grade 6": 30500,
-    "Grade 7": 31500, "Grade 8": 32500, "Grade 9": 32500
+    "Grade 7": 31500, "Grade 8": 32500, "Grade 9": 32500,
+    "Grade 10": 34500, "Grade 11": 36500, "Grade 12": 38500
 }
 
-cert_fee_map = {"Grade 7": 300, "Grade 9": 400}
+cert_fee_map = {"Grade 7": 300, "Grade 9": 400, "Grade 10": 500, "Grade 11": 500, "Grade 12": 600}
 
 # ---------------------------------------------------------
-# 3. SIDEBAR CONTROLS
+# 3. SIDEBAR CONTROLS & VALIDITY SETTINGS
 # ---------------------------------------------------------
 st.sidebar.header("⚙️ Student & Family Setup")
 num_students = st.sidebar.number_input("Number of Students", min_value=1, max_value=6, value=1, step=1)
 nationality = st.sidebar.selectbox("Nationality (Tax Category)", ["Saudi National (0% VAT)", "Non-Saudi (15% VAT)"])
 parent_name = st.sidebar.text_input("Parent / Guardian Name", "Parent/Guardian")
+
+st.sidebar.divider()
+st.sidebar.header("📅 Date & Validity Controls")
+
+# Automatic KSA Issue Date
+issue_date = st.sidebar.date_input("Quotation Issue Date (KSA)", value=current_ksa_date)
+
+# Dynamic Validity Selectors
+discount_validity_days = st.sidebar.slider("Discount Validity (Days)", min_value=1, max_value=60, value=15)
+quote_validity_days = st.sidebar.slider("Quotation Validity (Days)", min_value=1, max_value=90, value=30)
+
+discount_expiry_date = issue_date + timedelta(days=discount_validity_days)
+quote_expiry_date = issue_date + timedelta(days=quote_validity_days)
 
 vat_rate = 0.15 if "Non-Saudi" in nationality else 0.0
 
@@ -137,6 +162,7 @@ family_total_quote = 0.0
 family_first_payment = 0.0
 family_second_payment = 0.0
 student_summaries = []
+ipad_details_list = []
 
 # ---------------------------------------------------------
 # 4. DYNAMIC STUDENT INPUT TABS
@@ -158,7 +184,12 @@ for i, tab in enumerate(tabs):
         with c2:
             default_discount = 35 + (5 if i > 0 else 0)
             discount_pct = st.slider("Discount (%)", 0, 50, min(default_discount, 50), 5, key=f"disc_{i}")
+            
+            # iPad Controls
             include_ipad = st.checkbox("Include iPad (SAR 2,800)", value=False, key=f"ipad_{i}")
+            show_ipad_details = False
+            if include_ipad:
+                show_ipad_details = st.checkbox("Include Full iPad Bundle Details in Quote", value=True, key=f"show_ipad_det_{i}")
             
         with c3:
             bus_option = st.selectbox(
@@ -212,6 +243,9 @@ for i, tab in enumerate(tabs):
             "Total (SAR)": total_student_fee
         })
 
+        if include_ipad and show_ipad_details:
+            ipad_details_list.append(student_name_input)
+
         st.markdown('<div class="quote-box">', unsafe_allow_html=True)
         m1, m2, m3, m4 = st.columns(4)
         m1.metric(f"Base Tuition ({student_type})", f"{base_tuition:,.2f} SAR")
@@ -221,10 +255,16 @@ for i, tab in enumerate(tabs):
         st.markdown('</div>', unsafe_allow_html=True)
 
 # ---------------------------------------------------------
-# 5. CONSOLIDATED SUMMARY
+# 5. CONSOLIDATED SUMMARY & VALIDITY DISPLAY
 # ---------------------------------------------------------
 st.divider()
 st.subheader("📊 Official Family Quotation Summary")
+
+# Display Validity Badges
+val_col1, val_col2, val_col3 = st.columns(3)
+val_col1.info(f"📅 **Issue Date (KSA):** {issue_date.strftime('%d %b %Y')}")
+val_col2.warning(f"⏳ **Discount Valid Until:** {discount_expiry_date.strftime('%d %b %Y')} ({discount_validity_days} Days)")
+val_col3.error(f"🛑 **Quotation Expires:** {quote_expiry_date.strftime('%d %b %Y')} ({quote_validity_days} Days)")
 
 df_family = pd.DataFrame(student_summaries)
 st.dataframe(df_family.style.format({
@@ -242,10 +282,26 @@ col_p1, col_p2 = st.columns(2)
 col_p1.info(f"**Total First Installment:** `{family_first_payment:,.2f} SAR`")
 col_p2.success(f"**Total Second Installment:** `{family_second_payment:,.2f} SAR`")
 
+# Render iPad Specifications & Renewal Notice if toggled
+if len(ipad_details_list) > 0:
+    st.divider()
+    st.subheader("📱 Student iPad Package Details & License Compliance")
+    st.write(f"**Selected for:** {', '.join(ipad_details_list)}")
+    
+    st.markdown("""
+    * **Hardware & Protection:** New iPad A16 (128GB), Rugged Protective Cover, and School-Approved Stylus.
+    * **Security & Care:** AppleCare+ for Enterprise (36 Months coverage).
+    * **Management & Licenses:** Jamf School Management (MDM), Microsoft School Account (1TB Cloud), 200GB iCloud & Apple Managed Account.
+    * **Technical Services:** Pre-configured school apps, security profiles, and full technical support.
+    
+    > ⚠️ **IMPORTANT RENEWAL NOTICE:**  
+    > *The initial SAR 2,800 package covers Year 1 device provisioning and software setup. All software management licenses (Jamf MDM, Microsoft 365, Cloud services) **must be renewed annually** by the parent/guardian to maintain network access and device compliance.*
+    """)
+
 st.divider()
 
 # ---------------------------------------------------------
-# 6. SAFE PDF GENERATION BUILDER
+# 6. PDF GENERATION BUILDER
 # ---------------------------------------------------------
 def create_pdf_bytes():
     try:
@@ -276,14 +332,15 @@ def create_pdf_bytes():
             'MetaText',
             parent=styles['Normal'],
             fontName='Helvetica',
-            fontSize=10,
-            leading=14,
+            fontSize=9,
+            leading=13,
             textColor=colors.HexColor('#333333')
         )
 
         elements.append(Paragraph("OFFICIAL ADMISSION FEE QUOTATION", title_style))
         elements.append(Paragraph(f"<b>Parent / Guardian:</b> {parent_name} &nbsp;&nbsp;|&nbsp;&nbsp; <b>Tax Status:</b> {nationality}", meta_style))
-        elements.append(Spacer(1, 15))
+        elements.append(Paragraph(f"<b>Issue Date:</b> {issue_date.strftime('%d %b %Y')} &nbsp;&nbsp;|&nbsp;&nbsp; <b>Discount Valid Until:</b> {discount_expiry_date.strftime('%d %b %Y')} &nbsp;&nbsp;|&nbsp;&nbsp; <b>Quote Expiry:</b> {quote_expiry_date.strftime('%d %b %Y')}", meta_style))
+        elements.append(Spacer(1, 12))
 
         table_data = [["Student Name", "Grade", "Base Tuition", "Disc %", "Disc Amt", "VAT", "Total (SAR)"]]
         for s in student_summaries:
@@ -310,7 +367,7 @@ def create_pdf_bytes():
             ('TOPPADDING', (0,0), (-1,-1), 6),
         ]))
         elements.append(pdf_table)
-        elements.append(Spacer(1, 15))
+        elements.append(Spacer(1, 10))
         
         summary_text = f"""
         <b>Grand Total Quote:</b> {family_total_quote:,.2f} SAR<br/>
@@ -321,9 +378,22 @@ def create_pdf_bytes():
             parent=styles['Normal'],
             fontName='Helvetica',
             fontSize=10,
-            leading=16,
+            leading=15,
             textColor=colors.HexColor('#0B2545')
         )))
+
+        # PDF iPad License Note
+        if len(ipad_details_list) > 0:
+            elements.append(Spacer(1, 10))
+            ipad_pdf_text = f"<b>iPad Package Specs & Renewal Notice:</b> Included for ({', '.join(ipad_details_list)}). Includes iPad A16 128GB, Cover, Stylus, AppleCare+ Enterprise, Jamf MDM, Microsoft 365, and Apple Managed Services. <i>*Note: Software and MDM management licenses must be renewed annually.</i>"
+            elements.append(Paragraph(ipad_pdf_text, ParagraphStyle(
+                'IPadBox',
+                parent=styles['Normal'],
+                fontName='Helvetica-Oblique',
+                fontSize=8,
+                leading=11,
+                textColor=colors.HexColor('#475569')
+            )))
         
         doc.build(elements)
         content_buffer.seek(0)
