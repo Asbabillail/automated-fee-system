@@ -77,58 +77,54 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 # ---------------------------------------------------------
-# 2. DYNAMIC TEAM ACCOUNTS & NAME PARSER
+# 2. AUTOMATIC USER DETECTION & DYNAMIC PARSER
 # ---------------------------------------------------------
-def extract_display_name(email_or_name: str, first_name_only: bool = False) -> str:
+def get_current_user_info():
     """
-    Dynamically converts email addresses into formatted names.
-    Examples:
-        'farda.khann@yenschoolksa.com' -> 'Farda Khann' (or 'Farda' if first_name_only=True)
-        'ayat.alenezi@yenschoolksa.com' -> 'Ayat Alenezi'
+    Automatically detects the logged-in email from Streamlit / SSO Headers.
+    Returns (email, full_name, first_name)
     """
-    if not email_or_name:
-        return "Staff Member"
-        
-    if "@" in email_or_name:
-        username = email_or_name.split("@")[0]
-        parts = [p.capitalize() for p in username.replace(".", " ").replace("_", " ").split()]
-        if first_name_only and len(parts) > 0:
-            return parts[0]
-        return " ".join(parts)
-        
-    return email_or_name.title()
+    user_email = ""
 
-# Team workspace accounts (Add future invited emails cleanly here)
-TEAM_EMAILS = [
-    "farda.khann@yenschoolksa.com",
-    "wafa.alsaleh@yenschoolksa.com",
-    "administration@yenschoolksa.com",
-    "ayat.alenezi@yenschoolksa.com",
-    "hameem.tayyyib@yenschoolksa.com"
-]
+    # 1. Native Streamlit User context (Streamlit Cloud Community / Enterprise)
+    if hasattr(st, "experimental_user") and getattr(st.experimental_user, "email", None):
+        user_email = st.experimental_user.email
+    elif hasattr(st, "user") and getattr(st.user, "email", None):
+        user_email = st.user.email
 
-# Auto-detect Streamlit user email if logged in
-active_user_email = getattr(st, "experimental_user", {}).get("email", "")
+    # 2. Fallback to common HTTP proxy/SSO request headers (Azure AD / M365 / OAuth Proxy)
+    if not user_email:
+        try:
+            headers = st.context.headers
+            user_email = (
+                headers.get("X-Reauth-Email") or
+                headers.get("X-Forwarded-Email") or
+                headers.get("X-User-Email") or
+                headers.get("X-Ms-Client-Principal-Name") or
+                ""
+            )
+        except Exception:
+            user_email = ""
 
-default_user_idx = 0
-if active_user_email in TEAM_EMAILS:
-    default_user_idx = TEAM_EMAILS.index(active_user_email)
+    # Default fallback if running locally on localhost without authentication
+    if not user_email:
+        user_email = "IT@yenschoolksa.com"
+
+    # Dynamic Email to Display Name Parser
+    username = user_email.split("@")[0]
+    name_parts = [p.capitalize() for p in username.replace(".", " ").replace("_", " ").split()]
+    
+    full_name = " ".join(name_parts) if name_parts else "Staff Member"
+    first_name = name_parts[0] if name_parts else "Staff"
+
+    return user_email, full_name, first_name
+
+# Execute auto-detection (Zero manual user input required)
+active_email, active_full_name, active_first_name = get_current_user_info()
 
 # ---------------------------------------------------------
-# 3. SIDEBAR CONTROLS & USER SELECTOR
+# 3. SIDEBAR CONTROLS & VALIDITY SETTINGS
 # ---------------------------------------------------------
-st.sidebar.header("👤 Staff Account Setup")
-selected_user_email = st.sidebar.selectbox(
-    "Active Staff User",
-    options=TEAM_EMAILS,
-    index=default_user_idx,
-    format_func=lambda email: extract_display_name(email, first_name_only=False)
-)
-
-active_full_name = extract_display_name(selected_user_email, first_name_only=False)
-active_first_name = extract_display_name(selected_user_email, first_name_only=True)
-
-st.sidebar.divider()
 st.sidebar.header("⚙️ Student & Family Setup")
 num_students = st.sidebar.number_input("Number of Students", min_value=1, max_value=6, value=1, step=1)
 nationality = st.sidebar.selectbox("Nationality (Tax Category)", ["Saudi National (0% VAT)", "Non-Saudi (15% VAT)"])
