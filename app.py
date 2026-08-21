@@ -97,12 +97,13 @@ with col_header_right:
 # ---------------------------------------------------------
 # 2. MASTER DATA MAPPINGS
 # ---------------------------------------------------------
+# KG: 500 | Grade 1-3: 1200 | Grade 4 and above: 1500
 books_fee_map = {
     "KG. 1": 500, "KG. 2": 500, "KG. 3": 500,
     "Grade 1": 1200, "Grade 2": 1200, "Grade 3": 1200,
     "Grade 4": 1500, "Grade 5": 1500, "Grade 6": 1500,
     "Grade 7": 1500, "Grade 8": 1500, "Grade 9": 1500,
-    "Grade 10": 1800, "Grade 11": 1800, "Grade 12": 1500  # Updated Grade 12 to 1500
+    "Grade 10": 1500, "Grade 11": 1500, "Grade 12": 1500
 }
 
 new_tuition_map = {
@@ -375,7 +376,7 @@ if len(full_ipad_pkg_students) > 0:
 st.divider()
 
 # ---------------------------------------------------------
-# 6. EXACT MATCH PDF GENERATOR (ALWAYS-BOTTOM SIGNATURE)
+# 6. EXACT MATCH PDF GENERATOR (WELL-SPACED SIGNATURE)
 # ---------------------------------------------------------
 def create_pdf_bytes():
     try:
@@ -386,7 +387,7 @@ def create_pdf_bytes():
             rightMargin=25, 
             leftMargin=25, 
             topMargin=65,
-            bottomMargin=80  # Reserved space so table content never collides with fixed bottom signatures
+            bottomMargin=130  # Increased margin to avoid overlap with signatures at y=120
         )
         
         elements = []
@@ -453,7 +454,6 @@ def create_pdf_bytes():
         elements.append(Paragraph(f"<b>Parent / Guardian Name:</b> {parent_name} &nbsp;&nbsp;|&nbsp;&nbsp; <b>Tax Category:</b> {nationality}", meta_header_style))
         elements.append(Spacer(1, 6))
 
-        # Date Meta Badges Row
         badge_col1 = [Paragraph(f"📅 Issue Date (KSA):<br/><b>{issue_date.strftime('%d %b %Y')}</b>", badge_text_blue)]
         badge_col2 = [Paragraph(f"⏳ Discount Valid Until:<br/><b>{discount_expiry_date.strftime('%d %b %Y')} ({discount_validity_days} Days)</b>", badge_text_olive)]
         badge_col3 = [Paragraph(f"🛑 Quotation Expires:<br/><b>{quote_expiry_date.strftime('%d %b %Y')} ({quote_validity_days} Days)</b>", badge_text_red)]
@@ -660,7 +660,7 @@ def create_pdf_bytes():
             elements.append(r_table)
 
         # -----------------------------------------------------
-        # 6. ABSOLUTE FIXED BOTTOM SIGNATURE CANVAS DRAWING
+        # 6. SIGNATURE CANVAS DRAWING (POSITIONED ABOVE FOOTER)
         # -----------------------------------------------------
         def draw_bottom_signatures(canvas, doc):
             canvas.saveState()
@@ -691,9 +691,9 @@ def create_pdf_bytes():
                 ('BOTTOMPADDING', (0,0), (-1,-1), 0),
             ]))
 
-            # Position at page bottom above footer margin (x=25, y=55)
+            # Raised y to 120 so signature lines sit above letterhead footer image
             w, h = sig_table.wrap(555, 60)
-            sig_table.drawOn(canvas, 25, 55)
+            sig_table.drawOn(canvas, 25, 120)
             canvas.restoreState()
 
         # Build PDF with Page Canvas Callback
