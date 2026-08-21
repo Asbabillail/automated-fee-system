@@ -408,12 +408,11 @@ col_p2.success(f"**Term 2 Payment Required:** `{family_second_payment:,.2f} SAR`
 # ---------------------------------------------------------
 # ATTRACTIVE IPAD SPECIFICATION CALLOUT CARD
 # ---------------------------------------------------------
+# Lines 411 - 456
 if len(full_ipad_pkg_students) > 0:
     st.markdown(f"""
     <div class="ipad-hero-card">
-        <div class="ipad-hero-title">
-            📱 Full Student iPad Package Details
-        </div>
+        <div class="ipad-hero-title">📱 Full Student iPad Package Details</div>
         <div class="ipad-hero-sub">
             <b>Selected for Student(s):</b> <span style="color: #38BDF8;">{', '.join(full_ipad_pkg_students)}</span>
         </div>
@@ -438,14 +437,14 @@ if len(full_ipad_pkg_students) > 0:
                 </ul>
             </div>
         </div>
-        
+
         <div class="payment-box">
             <div class="box-title-amber">💳 Payment Terms Policy:</div>
             <p class="box-body">
                 The discounted rate of <b>SAR 2,800</b> is an <b>instant/spot payment offer</b> at the time of registration. If choosing the <b>C-Pay 12-Month Installment Plan</b>, the total price is <b>SAR 3,000</b> (12 monthly payments of SAR 250).
             </p>
         </div>
-        
+
         <div class="renewal-box">
             <div class="box-title-red">⚠️ Annual Software License Renewal Notice:</div>
             <p class="box-body">
