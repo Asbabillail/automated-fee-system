@@ -408,7 +408,6 @@ col_p2.success(f"**Term 2 Payment Required:** `{family_second_payment:,.2f} SAR`
 # ---------------------------------------------------------
 # ATTRACTIVE IPAD SPECIFICATION CALLOUT CARD
 # ---------------------------------------------------------
-# Lines 411 - 456
 if len(full_ipad_pkg_students) > 0:
     st.markdown(f"""
     <div class="ipad-hero-card">
@@ -438,16 +437,16 @@ if len(full_ipad_pkg_students) > 0:
             </div>
         </div>
 
-        <div class="payment-box">
-            <div class="box-title-amber">💳 Payment Terms Policy:</div>
-            <p class="box-body">
+        <div style="background-color: #1e293b; border-left: 4px solid #f59e0b; padding: 12px 16px; margin-top: 15px; border-radius: 6px;">
+            <div style="color: #fbbf24; font-weight: bold; margin-bottom: 6px;">💳 Payment Terms Policy:</div>
+            <p style="color: #e2e8f0; margin: 0; font-size: 0.9em;">
                 The discounted rate of <b>SAR 2,800</b> is an <b>instant/spot payment offer</b> at the time of registration. If choosing the <b>C-Pay 12-Month Installment Plan</b>, the total price is <b>SAR 3,000</b> (12 monthly payments of SAR 250).
             </p>
         </div>
 
-        <div class="renewal-box">
-            <div class="box-title-red">⚠️ Annual Software License Renewal Notice:</div>
-            <p class="box-body">
+        <div style="background-color: #1e293b; border-left: 4px solid #ef4444; padding: 12px 16px; margin-top: 12px; border-radius: 6px;">
+            <div style="color: #f87171; font-weight: bold; margin-bottom: 6px;">⚠️ Annual Software License Renewal Notice:</div>
+            <p style="color: #e2e8f0; margin: 0; font-size: 0.9em;">
                 The initial package fee covers Year 1 hardware, provisioning, and software setups. All active management licenses (Jamf MDM, Microsoft 365, Cloud platform access) <b>must be renewed annually</b> by parents to keep the device compliant with school systems.
             </p>
         </div>
